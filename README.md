@@ -1,4 +1,4 @@
-# Plotting benchmark
+# PandasPlotBench benchmark
 
 This is the benchmark to assess the capability of models in writing the code for visualizations given the description of the Pandas DataFrame.
 
@@ -12,7 +12,7 @@ Folder `paper_supp_info` contains supplementary information for oncoming manuscr
 
 # Install
 
-1. Clone repo `git clone https://github.com/JetBrains-Research/plotting-benchmark.git`
+1. Clone repo `git clone https://github.com/JetBrains-Research/PandasPlotBench.git`
 2. `cd plotting-benchmark`
 3. Run `poetry install`
    1. If you're going to use benchmarking on the local machine (includes using `code_bert_score`), instead run `poetry install --extras "local_gpu"`

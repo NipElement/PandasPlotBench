@@ -1,41 +1,40 @@
-# PandasPlotBench benchmark
+# PandasPlotBench
 
 This is the benchmark to assess the capability of models in writing the code for visualizations given the description of the Pandas DataFrame.
 
 🛠️ **Task**. Given the plotting task and the description of a Pandas DataFrame, write the code to build a plot.
 
-The dataset can be found on [HuggingFace page](https://huggingface.co/datasets/JetBrains-Research/plot_bench). It is based on the [MatPlotLib gallery](https://matplotlib.org/stable/gallery/index.html).
+The dataset can be found on our [HuggingFace page](https://huggingface.co/datasets/JetBrains-Research/plot_bench). It is based on the [MatPlotLib gallery](https://matplotlib.org/stable/gallery/index.html).
 
-Folder `paper_supp_info` contains supplementary information for oncoming manuscript and a file with data points demonstration (tasks and plots).
+The `paper_supp_info` directory contains the supplementary materials for our paper, as well as a file with a demonstration of data points (tasks and plots).
 
 📩 If you have any questions or requests concerning this dataset, please contact the author at [timur.galimzyanov@jetbrains.com](mailto:timur.galimzyanov@jetbrains.com).
 
 # Install
 
-1. Clone repo `git clone https://github.com/JetBrains-Research/PandasPlotBench.git`
-2. `cd plotting-benchmark`
-3. Run `poetry install`
-   1. If you're going to use benchmarking on the local machine (includes using `code_bert_score`), instead run `poetry install --extras "local_gpu"`
-4. Edit config if needed (`configs/config.yaml`).
-5. Setup environment variables for the proprietary model keys if necessary (see details in [Usage section](#usage)).
-
-6. Run the benchmark (see details in [Usage section](#usage)):
+1. Clone the repo: `git clone https://github.com/JetBrains-Research/PandasPlotBench.git`
+2. Navigate to the directory: `cd plotting-benchmark`
+3. Run: `poetry install`
+   * **Important**: if you're going to use benchmarking on a local machine (includes using `code_bert_score`), run `poetry install --extras "local_gpu"` instead.
+4. Edit the config if needed (`configs/config.yaml`).
+5. Set up environment variables for the proprietary model keys if necessary (see details in the [Usage](#usage) section).
+6. Run the benchmark (see details in the [Usage](#usage) section):
 `poetry run python run_benchmark.py`
 
-You can run the benchmark on some subset of the datapoints passing the `--limit` parameter either the number of datapoints to run or list of IDs:
+You can run the benchmark on a subset of the datapoints by passing the `--limit` parameter with either the number of datapoints to run or a list of IDs:
 
 `poetry run python run_benchmark.py --limit=2`
 
 # Dataset
 
-Dataset contains plotting task, tiny data csv to be plotted and ground truth images. 
-Each datapoint is stored in separate folder. The task is divided into 2 parts:
-1. **Plot Description**. Main part, describing the target plot.
-2. **Plot Style Description**. General guidelines for plot styling.
+Each datapoint contains a plotting task, a small CSV with the data to be plotted, and the ground truth images. 
+Each datapoint is stored in a separate folder. Each task is divided into two parts:
+1. **Plot description**. The main part, describing the target plot.
+2. **Plot style description**. General guidelines for the styling of the plot.
 
-Tasks can be changed dynamically using `TaskChanger` class (see **Usage** section).
+The tasks can be changed dynamically using the `TaskChanger` class (see the [Usage](#usage) section).
 
-Dataset can be loaded from via [`load_dataset`](https://huggingface.co/docs/datasets/v3.1.0/en/package_reference/loading_methods#datasets.load_dataset):
+The dataset can be loaded via [`load_dataset`](https://huggingface.co/docs/datasets/v3.1.0/en/package_reference/loading_methods#datasets.load_dataset):
 
 ```
 from datasets import load_dataset
@@ -44,14 +43,14 @@ dataset = load_dataset("JetBrains-Research/plot_bench", split="test")
 
 # Usage
 
-For the code generation models you can use four options:
+For the code generation models, you can use three options:
 
-1. VLLM. Just pass HuggingFace model name in the model_plot_gen.names list.
-2. OpenAI models. Add "openai/" prefix to the OpenAI model name to select this option. In this case you should set `OPENAI_KEY` environment variable with corresponding token. 
-3. TogetherAI models. Add "together/" prefix to the TogetherAI model name to select this option. In this case you should set `TOGETHERAI_KEY` environment variable with corresponding token.
+1. **VLLM**. Just pass the HuggingFace model name in the `model_plot_gen.names` list.
+2. **OpenAI models**. Add "openai/" prefix to the OpenAI model name to select this option. In this case, you should set the `OPENAI_KEY` environment variable with a corresponding token. 
+3. **TogetherAI models**. Add "together/" prefix to the TogetherAI model name to select this option. In this case, you should set the `TOGETHERAI_KEY` environment variable with a corresponding token.
 
-For image-based scoring we use OpenAI GPT4-v model (default is `gpt-4o-2024-05-13`). So, you have to set `OPENAI_KEY` environment variable with corresponding token.
-You can provide keys in .env file in the root of the repo, that would be loaded automatically.
+For image-based scoring, we use the OpenAI GPT4-v model (the default is `gpt-4o-2024-05-13`). Thus, you have to set the `OPENAI_KEY` environment variable with a corresponding token.
+You can provide the keys in the `.env` file at the root of the repository, and they will be loaded automatically.
 
 ## Basic usage
 ```
@@ -64,31 +63,31 @@ benchmark.run_benchmark()
 
 ### Method's arguments:
 
-- `ids` - Limits datapoints ids to be benchmarked: i.e `ids = [3, 5, 7]`
-- `reuse_results` - if `True`, does not generate plots, reuses results saved in results_filename.
-- `load_intermediate` - if `True`, does not generate plots, loads intermediate results from current_results.jsonl
-that stores intermediate results for the case of crush.
-- `only_stats` - if `True` does not run benchmarking just calculates stats from the file results_filename.
+- `ids` — limits datapoints IDs to be benchmarked: _e.g._, `ids = [3, 5, 7]`
+- `reuse_results` — if `True`, does not generate plots, reuses results saved in `results_filename`.
+- `load_intermediate` — if `True`, does not generate plots, loads intermediate results from `current_results.jsonl`
+that stores intermediate results in the case of a crash.
+- `only_stats` — if `True`, does not run benchmarking, and rather just calculates the stats from `results_filename`.
 
 ### Resources
 
-Config template and LLM instructs can be found in `plotting_benchmark/resources` folder
+The config template and LLM instructs can be found in the `plotting_benchmark/resources` directory.
 
 
 ## Results
 
-Results are saved in the `out_folder` that is set up in config.
-For each benchmarking model following files are saved:
+The results are saved in the `out_folder` that is set up in the config.
+For each benchmarked model, the following files are saved:
 
-- `results_{modelname}_{plottinglib}_{df_descriptor}.json` - dataset with results for each datapoint (plots in encoded png, scores, generated code)
-- `all_plotsall_plots_{modelname}_{plottinglib}_{df_descriptor}.ipynb` - notebook with all plots (code, figures, possible errors) of the dataset.
-- `benchmark_stat.jsonl` - statistics for the benchmark scores. Each model result starts from new line.
+- `results_{modelname}_{plottinglib}_{df_descriptor}.json` — a dataset with the results for each datapoint (plots in encoded PNG, scores, generated code).
+- `all_plotsall_plots_{modelname}_{plottinglib}_{df_descriptor}.ipynb` — a notebook with all the plots of the dataset (code, figures, possible errors).
+- `benchmark_stat.jsonl` — statistics for the benchmark scores. The results of each model start from new line.
  
 
 ## Custom task changer
 
-You can experiment with tasks wording. I.e. change data description or setup part to control plotting libraries.
-To do that, create a `CustomTaskChanger` inherited from `TaskChanger`. This is a template for custom task changer:
+You can experiment with the wording of tasks, _i.e._, change data description or the setup part to control plotting libraries.
+To do that, create a `CustomTaskChanger` inheriting from `TaskChanger`. Here is a template for a custom task changer:
 
 ```
 import pandas as pd
@@ -120,7 +119,7 @@ benchmark = PlottingBenchmark(
 benchmark.run_benchmark()
 ```
 
-# Important notes:
+# Important notes
 
-1. Our approach relies on the run of the LLM-generated code. Apart from the safety, there is an issue of installed libraries. Generated code could use uninstalled libs and this will lead to not plotted plot. May be in the prompt we should list installed graphical libraries.
-2. time_used_per_item in stats includes waiting time in case of time-out.
+1. Our approach relies on running LLM-generated code. In addition to safety, there is an issue of having the right libraries installed. The generated code could use libraries that are not installed, and this will lead to failing to build a plit. Perhaps, we should list the installed graphical libraries in the prompt.
+2. `time_used_per_item` in statistics includes the waiting time in a case of a time-out.

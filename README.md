@@ -28,7 +28,7 @@ You can run the benchmark on a subset of the datapoints by passing the `--limit`
 # Dataset
 
 Each datapoint contains a plotting task, a small CSV with the data to be plotted, and the ground truth images. 
-Each datapoint is stored in a separate folder. Each task is divided into two parts:
+Each task is divided into two parts:
 1. **Plot description**. The main part, describing the target plot.
 2. **Plot style description**. General guidelines for the styling of the plot.
 

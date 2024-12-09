@@ -6,6 +6,8 @@ This is the benchmark to assess the capability of models in writing the code for
 
 The dataset can be found on our [HuggingFace page](https://huggingface.co/datasets/JetBrains-Research/plot_bench). It is based on the [MatPlotLib gallery](https://matplotlib.org/stable/gallery/index.html).
 
+The paper can be found in arXiv: https://arxiv.org/abs/2412.02764v1.
+
 The `paper_supp_info` directory contains the supplementary materials for our paper, as well as a file with a demonstration of data points (tasks and plots).
 
 📩 If you have any questions or requests concerning this dataset, please contact the author at [timur.galimzyanov@jetbrains.com](mailto:timur.galimzyanov@jetbrains.com).

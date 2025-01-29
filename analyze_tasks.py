@@ -34,7 +34,7 @@ def analyze_task_length(dataset: pd.DataFrame):
 
 
 if __name__ == "__main__":
-    dataset = load_dataset("JetBrains-Research/plot_bench", split="test")
+    dataset = load_dataset("JetBrains-Research/PandasPlotBench", split="test")
     dataset_df = dataset.to_pandas()
 
     analyze_task_length(dataset_df)

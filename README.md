@@ -4,7 +4,7 @@ This is the benchmark to assess the capability of models in writing the code for
 
 🛠️ **Task**. Given the plotting task and the description of a Pandas DataFrame, write the code to build a plot.
 
-The dataset can be found on our [HuggingFace page](https://huggingface.co/datasets/JetBrains-Research/plot_bench). It is based on the [MatPlotLib gallery](https://matplotlib.org/stable/gallery/index.html).
+The dataset can be found on our [HuggingFace page](https://huggingface.co/datasets/JetBrains-Research/PandasPlotBench). It is based on the [MatPlotLib gallery](https://matplotlib.org/stable/gallery/index.html).
 
 The paper can be found in arXiv: https://arxiv.org/abs/2412.02764v1.
 
@@ -40,7 +40,7 @@ The dataset can be loaded via [`load_dataset`](https://huggingface.co/docs/datas
 
 ```
 from datasets import load_dataset
-dataset = load_dataset("JetBrains-Research/plot_bench", split="test")
+dataset = load_dataset("JetBrains-Research/PandasPlotBench", split="test")
 ```
 
 # Usage

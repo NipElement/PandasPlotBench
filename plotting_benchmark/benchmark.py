@@ -66,7 +66,7 @@ class PlottingBenchmark:
         with open(paths.instructs_file, "r") as f:
             self.instructs = json.load(f)
         self.system_prompt = self.instructs["system_prompt"]
-        self.dataset = load_dataset("JetBrains-Research/plot_bench", split="test")
+        self.dataset = load_dataset("JetBrains-Research/PandasPlotBench", split="test")
         self.model_judge = get_model_by_name(
             self.config.model_judge.name,
             dict(self.config.model_judge.parameters),

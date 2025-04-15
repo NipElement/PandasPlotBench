@@ -16,8 +16,8 @@ class OpenAIEngine(BaseOpenAIImageEngine, BaseOpenAIEngine):
         do_logprobs: bool = False,
         tokens_highlighted: list[str] = [],
         add_args: dict = {},
-        wait_time: float = 20.0,
-        attempts: int = 10,
+        wait_time: float = 60.0,
+        attempts: int = 30,
     ) -> None:
         api_key_name = "OPENAI_KEY"
         super().__init__(

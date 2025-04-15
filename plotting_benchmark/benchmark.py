@@ -181,6 +181,7 @@ class PlottingBenchmark:
         reuse_results: bool = False,
         load_intermediate: bool = False,
         only_stats: bool = False,
+        skip_plot: bool = False,
     ) -> tuple[pd.DataFrame, dict]:
         print(20 * "-")
         print(f"Benchmarking {model_name} model")
@@ -195,7 +196,9 @@ class PlottingBenchmark:
             self.config.paths.results_filename,
             results_file_spostfix,
         )
-
+        print(f"[DEBUG]: Reuse: {reuse_results}, Load: {load_intermediate}, Only stats: {only_stats}")
+        print(f"[DEBUG] New results file: {new_results_file}")
+        print(f"[DEBUG] Old results file: {old_results_file}")
         if reuse_results or only_stats:
             self.results_file = old_results_file
             print(f"loading {self.results_file}")
@@ -219,8 +222,38 @@ class PlottingBenchmark:
             if self.model_plot.__class__.__name__ == "VllmEngine":
                 self.kill_vllm()
 
+        # if not only_stats:
+        #     dataset_df = self.plot_generator.draw_plots(dataset_df)
+        #     dataset_df = self.judge.score(dataset_df)
+        #     self.dump_results(dataset_df)
         if not only_stats:
-            dataset_df = self.plot_generator.draw_plots(dataset_df)
+            if not skip_plot:
+                print("[DEBUG] Drawing plots...")
+                dataset_df = self.plot_generator.draw_plots(dataset_df)
+            else:
+                print("[DEBUG] Skipping plot rendering.")
+                model_name = dataset_df["model"].iloc[0].replace("/", "__")
+                data_descriptor = dataset_df["data_descriptor"].iloc[0]
+                plot_lib = self.config.plotting_lib.split(" ")[0]
+                json_filename = Path(self.results_file).name
+                notebook_index = json_filename.split("_")[-1].replace(".json", "")
+                expected_nb_path = (
+                    Path(self.config.paths.out_folder) /
+                    f"plots_{data_descriptor}_{model_name}_{plot_lib}_{notebook_index}.ipynb"
+                )
+
+                if not expected_nb_path.exists():
+                    raise FileNotFoundError(
+                        f"Notebook {expected_nb_path} not found. Cannot extract plots!"
+                    )
+
+                print(f"[DEBUG] Loading plots from notebook {expected_nb_path}")
+                parsed_df = self.plot_generator.parse_plots_notebook(expected_nb_path)
+
+                # Remove any old columns from dataset that will be overwritten
+                common_cols = dataset_df.columns.intersection(parsed_df.columns).drop("id")
+                dataset_df = dataset_df.drop(columns=common_cols)
+                dataset_df = dataset_df.merge(parsed_df, on="id", how="left")
             dataset_df = self.judge.score(dataset_df)
             self.dump_results(dataset_df)
         bench_stats = self.judge.calculate_stats(dataset_df)
@@ -237,6 +270,7 @@ class PlottingBenchmark:
         reuse_results: bool = False,
         load_intermediate: bool = False,
         only_stats: bool = False,
+        skip_plot: bool = False,
     ) -> None:
         for model_name in self.model_names:
             self.run_benchmark_model(
@@ -245,4 +279,5 @@ class PlottingBenchmark:
                 reuse_results,
                 load_intermediate,
                 only_stats,
+                skip_plot,
             )

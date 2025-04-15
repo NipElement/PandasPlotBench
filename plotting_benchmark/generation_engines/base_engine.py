@@ -19,8 +19,8 @@ class BaseOpenAIEngine:
         model_name,
         system_prompt: str = "You are helpful assistant",
         add_args: dict = {},
-        wait_time: float = 20.0,
-        attempts: int = 10,
+        wait_time: float = 60.0,
+        attempts: int = 30,
         api_key_name: str = "OPENAI_KEY",
     ) -> None:
         api_key = os.getenv(api_key_name)
@@ -94,7 +94,10 @@ class BaseOpenAIEngine:
 
         error_counts = 0
         response = None
-
+        # print(f"[DEBUG] OpenAI Engine Initialized:")
+        # print(f"        wait_time = {self.wait_time} seconds")
+        # print(f"        attempts   = {self.attempts}")
+        # print(f"        model      = {self.name}")
         while error_counts < self.attempts:
             response = self.ask(
                 request=request,

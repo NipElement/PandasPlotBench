@@ -11,8 +11,8 @@ class TogetherEngine(BaseOpenAIEngine):
         model_name,
         system_prompt: str = "You are helpful assistant",
         add_args: dict = {},
-        wait_time: float = 20.0,
-        attempts: int = 10,
+        wait_time: float = 60.0,
+        attempts: int = 30,
     ) -> None:
         api_key_name = "TOGETHERAI_KEY"
         super().__init__(

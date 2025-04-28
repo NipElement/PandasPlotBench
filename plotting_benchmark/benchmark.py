@@ -254,6 +254,26 @@ class PlottingBenchmark:
                 common_cols = dataset_df.columns.intersection(parsed_df.columns).drop("id")
                 dataset_df = dataset_df.drop(columns=common_cols)
                 dataset_df = dataset_df.merge(parsed_df, on="id", how="left")
+            print("[DEBUG] Skip Score")
+            err_num = (dataset_df["error"] != "").sum()
+            total_items = len(dataset_df)
+            error_rate = round(err_num / total_items, 3)
+
+            print(f"[DEBUG] Error rate: {error_rate:.4f}")
+            error_rate_record_file = Path("/data/yuansheng/mix_eval/error_rates.json")
+            if error_rate_record_file.exists():
+                with open(error_rate_record_file, "r") as f:
+                    error_rates = json.load(f)
+            else:
+                error_rates = {}
+
+            record_key = f"{model_name}_{plot_lib}"
+            error_rates[record_key] = error_rate
+
+            with open(error_rate_record_file, "w") as f:
+                json.dump(error_rates, f, indent=4)
+
+            exit(0)
             dataset_df = self.judge.score(dataset_df)
             self.dump_results(dataset_df)
         bench_stats = self.judge.calculate_stats(dataset_df)

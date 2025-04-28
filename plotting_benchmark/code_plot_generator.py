@@ -59,7 +59,12 @@ class CodePlotGenerator:
         code_blocks = [
             block.split("```")[0].strip() for block in answer.split("```python\n")[1:]
         ]
-        code = "\n".join(code_blocks)
+        if code_blocks:
+            code = "\n".join(code_blocks)
+        else:
+            for stop_token in ["<|eot_id|>", "<|endoftext|>", "<EOS>"]:
+                answer = answer.replace(stop_token, "")
+            code = answer.strip()
         code = code.replace('df = pd.read_csv("data.csv")', "#")
         code = code.replace("df = pd.read_csv('data.csv')", "#")
         code = code.replace('df=pd.read_csv("data.csv")', "#")

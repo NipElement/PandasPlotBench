@@ -1,0 +1,29 @@
+paths:
+  out_folder: "/data/yuansheng/mix_eval/qwen2_5_7b_coder_stage2_lr5e6_mix_100K/matplotlib/epoch2-ckpt1" # for output files
+  dataset_folder: "dataset"
+  results_filename: "results.json" # json stores temporarily plotting responses. Located in the out_folder
+  bench_stat_filename: "benchmark_stat.jsonl" # json stores final statistics of the benchmark results. Located in the out_folder
+  # instructs_file: "instructs/instructs.json" # Optional. Default instructs exists. json stores instructs for plot generation and LLM-benchmarking.
+benchmark_types: ["vis", "task"] # Options: "vis", "task", "codebert"
+plotting_lib: "matplotlib" # "matplotlib", "seaborn", "plotly", "lets-plot" (does not work)
+data_descriptor: "head" # data descriptor. Options: "pycharm", "datalore", "lida", "head", "describe", "empty"
+model_plot_gen:
+  # names: ["/data/yuansheng/ms-swift/output/qwen2_5_7b_coder_stage2_lr5e6_mix_100K/v0-20250425-040724/checkpoint-764"]
+  # names: ["/data/yuansheng/ms-swift/output/qwen2_5_7b_coder_stage2_lr5e6_mix_100K/v0-20250425-040724/checkpoint-1528"]
+  # names: ["/data/yuansheng/ms-swift/output/qwen2_5_7b_coder_stage2_lr5e6_mix_100K/v0-20250425-040724/checkpoint-2292"]
+
+  
+  names: ["/data/yuansheng/ms-swift/output/qwen2_5_7b_coder_stage2_lr5e6_mix_100K/v0-20250425-040724/checkpoint-3056"]
+  # names: ["/data/yuansheng/ms-swift/output/qwen2_5_7b_coder_stage2_lr5e6_mix_100K/v0-20250425-040724/checkpoint-3820"]
+  # names: ["/data/yuansheng/ms-swift/output/qwen2_5_7b_coder_stage2_lr5e6_mix_100K/v1-20250425-182355/checkpoint-4584"]
+
+  
+  # names: ["/data/yuansheng/ms-swift/output/qwen2_5_7b_coder_stage2_lr5e6_mix_100K/v1-20250425-182355/checkpoint-5348"]
+  # names: ["/data/yuansheng/ms-swift/output/qwen2_5_7b_coder_stage2_lr5e6_mix_100K/v1-20250425-182355/checkpoint-6112"]
+  # names: ["/data/yuansheng/ms-swift/output/qwen2_5_7b_coder_stage2_lr5e6_mix_100K/v1-20250425-182355/checkpoint-6876"]
+  parameters: # List of additional model parameters.
+    temperature: 0.0
+model_judge:
+  name: "openai/gpt-4o-2024-05-13"
+  parameters: # List of additional model parameters.
+    temperature: 0.0

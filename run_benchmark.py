@@ -14,7 +14,7 @@ def main(limit: int | list[int] | None = None):
     task_changer = None
 
     benchmark = PlottingBenchmark(
-        config_path="configs/config.yaml", task_changer=task_changer
+        config_path="configs/config_mix.yaml", task_changer=task_changer
     )
 
     for i in range(1):
@@ -28,7 +28,8 @@ def main(limit: int | list[int] | None = None):
     # load_intermediate - if True, does not generate plots, loads intermediate results from current_results.jsonl
     # that is stores intermediate results for the case of crush.
     # only_stats - if True does not run benchmarking just calculates stats from the file results_filename.
-
+    
+    # python run_benchmark.py --limit=2
 
 if __name__ == "__main__":
     fire.Fire(main)

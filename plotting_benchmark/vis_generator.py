@@ -169,7 +169,16 @@ class VisGenerator:
         plot_cells = setup_cell + plot_cells
         self.build_new_nb(plot_cells)
         print("Running all codes to build plots")
-        cmd = f'jupyter nbconvert --execute --allow-errors --to notebook --inplace "{self.plots_nb_path}"'
+        # cmd = f'jupyter nbconvert --execute --allow-errors --to notebook --inplace "{self.plots_nb_path}"'
+        cmd = (
+            'jupyter nbconvert --execute --to notebook --inplace '
+            '--allow-errors '
+            '--ExecutePreprocessor.timeout=30 '
+            '--ExecutePreprocessor.interrupt_on_timeout=True '
+            '--ExecutePreprocessor.allow_errors=True '
+            '--ExecutePreprocessor.error_on_timeout=False '
+            f'"{self.plots_nb_path}"'
+        )
         subprocess.call(cmd, shell=True)
 
         return self.plots_nb_path

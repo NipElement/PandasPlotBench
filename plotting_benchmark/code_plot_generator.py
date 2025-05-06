@@ -56,13 +56,20 @@ class CodePlotGenerator:
 
         # pattern = r"```python\n(.*?)\n```"
         # code_blocks = re.findall(pattern, answer, re.DOTALL)
-        code_blocks = [
-            block.split("```")[0].strip() for block in answer.split("```python\n")[1:]
-        ]
-        if code_blocks:
-            code = "\n".join(code_blocks)
+        # code_blocks = [
+        #     block.split("```")[0].strip() for block in answer.split("```python\n")[1:]
+        # ]
+        # if code_blocks:
+        #     code = "\n".join(code_blocks)
+        # else:
+        #     for stop_token in ["<|eot_id|>", "<|endoftext|>", "<EOS>"]:
+        #         answer = answer.replace(stop_token, "")
+        #     code = answer.strip()
+        if "```python" in answer:
+            first_block = answer.split("```python", 1)[1]
+            code = first_block.split("```", 1)[0].strip()
         else:
-            for stop_token in ["<|eot_id|>", "<|endoftext|>", "<EOS>"]:
+            for stop_token in ["<|eot_id|>", "<|endoftext|>", "<EOS>", "<|start_header_id|>", "<|end_header_id|>"]:
                 answer = answer.replace(stop_token, "")
             code = answer.strip()
         code = code.replace('df = pd.read_csv("data.csv")', "#")

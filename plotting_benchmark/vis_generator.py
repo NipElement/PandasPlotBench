@@ -6,7 +6,8 @@ import nbformat as nbf
 import pandas as pd
 from datasets import Dataset
 from omegaconf import DictConfig
-
+from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
+import nbformat
 
 def read_jsonl(file_path: str | Path) -> list[dict]:
     data = []
@@ -143,45 +144,77 @@ class VisGenerator:
         return plot_code_nb
 
     def build_plots(self, dataset: pd.DataFrame) -> Path:
-        """
-        Takes either response_file of list of responses.
-        List of responses is prioritized
-
-        Gather all datapoints code in a single notebook and run it.
-        So, each cell is a datapoint code with output - plot image
-        """
         plotting_lib = self.config.plotting_lib.lower()
         setup_cell = []
         if "lets-plot" in plotting_lib:
-            setup_cell = [
-                "\n".join(
-                    [
-                        "# Setup",
-                        "!pip install lets-plot",
-                        "!jupyter nbextension install lets-plot --py --sys-prefix",
-                        "!jupyter nbextension enable lets-plot --py --sys-prefix",
-                    ]
-                )
-            ]
-        plot_cells = dataset.apply(
+            setup_cell = ["# Setup\n!pip install lets-plot\n"
+                        "!jupyter nbextension install lets-plot --py --sys-prefix\n"
+                        "!jupyter nbextension enable lets-plot --py --sys-prefix"]
+        cells = setup_cell + dataset.apply(
             self.generate_code, axis=1, args=(plotting_lib,)
         ).tolist()
-        plot_cells = setup_cell + plot_cells
-        self.build_new_nb(plot_cells)
-        print("Running all codes to build plots")
-        # cmd = f'jupyter nbconvert --execute --allow-errors --to notebook --inplace "{self.plots_nb_path}"'
-        cmd = (
-            'jupyter nbconvert --execute --to notebook --inplace '
-            '--allow-errors '
-            '--ExecutePreprocessor.timeout=30 '
-            '--ExecutePreprocessor.interrupt_on_timeout=True '
-            '--ExecutePreprocessor.allow_errors=True '
-            '--ExecutePreprocessor.error_on_timeout=False '
-            f'"{self.plots_nb_path}"'
+        self.build_new_nb(cells)
+
+        with open(self.plots_nb_path) as f:
+            nb = nbformat.read(f, as_version=4)
+
+        ep = ExecutePreprocessor(
+            timeout=10,
+            interrupt_on_timeout=True,
+            allow_errors=True, 
+            kernel_name="python3",
         )
-        subprocess.call(cmd, shell=True)
+
+        try:
+            ep.preprocess(nb, {"metadata": {"path": "."}})
+        except CellExecutionError as e:
+            print(f"[WARNING] Execution stopped early: {e}\nNotebook will still be saved.")
+
+        with open(self.plots_nb_path, "w", encoding="utf-8") as f:
+            nbformat.write(nb, f)
+        # ---------------------------------------
 
         return self.plots_nb_path
+
+    # def build_plots(self, dataset: pd.DataFrame) -> Path:
+    #     """
+    #     Takes either response_file of list of responses.
+    #     List of responses is prioritized
+
+    #     Gather all datapoints code in a single notebook and run it.
+    #     So, each cell is a datapoint code with output - plot image
+    #     """
+    #     plotting_lib = self.config.plotting_lib.lower()
+    #     setup_cell = []
+    #     if "lets-plot" in plotting_lib:
+    #         setup_cell = [
+    #             "\n".join(
+    #                 [
+    #                     "# Setup",
+    #                     "!pip install lets-plot",
+    #                     "!jupyter nbextension install lets-plot --py --sys-prefix",
+    #                     "!jupyter nbextension enable lets-plot --py --sys-prefix",
+    #                 ]
+    #             )
+    #         ]
+    #     plot_cells = dataset.apply(
+    #         self.generate_code, axis=1, args=(plotting_lib,)
+    #     ).tolist()
+    #     plot_cells = setup_cell + plot_cells
+    #     self.build_new_nb(plot_cells)
+    #     print("Running all codes to build plots")
+    #     # cmd = f'jupyter nbconvert --execute --allow-errors --to notebook --inplace "{self.plots_nb_path}"'
+    #     cmd = (
+    #         'jupyter nbconvert --execute --to notebook --inplace '
+    #         '--allow-errors '
+    #         '--ExecutePreprocessor.timeout=20 '
+    #         '--ExecutePreprocessor.interrupt_on_timeout=True '
+    #         '--ExecutePreprocessor.error_on_timeout=False '
+    #         f'"{self.plots_nb_path}"'
+    #     )
+    #     subprocess.call(cmd, shell=True)
+
+    #     return self.plots_nb_path
 
     @staticmethod
     def parse_plots_notebook(plots_nb_path: Path | None = None) -> pd.DataFrame:

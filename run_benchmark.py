@@ -14,7 +14,7 @@ def main(limit: int | list[int] | None = None):
     task_changer = None
 
     benchmark = PlottingBenchmark(
-        config_path="configs/config_mix.yaml", task_changer=task_changer
+        config_path="configs/config_qwen3.yaml", task_changer=task_changer
     )
 
     for i in range(1):

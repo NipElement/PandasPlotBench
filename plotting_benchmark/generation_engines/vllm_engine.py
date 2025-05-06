@@ -1,11 +1,30 @@
 import json
 from collections import defaultdict
-from dataclasses import asdict
+from dataclasses import asdict, is_dataclass, fields
 from pathlib import Path
 from typing import Any
 
 from vllm import LLM, RequestOutput, SamplingParams
 
+def to_dict(obj):
+    if is_dataclass(obj):
+        try:
+            return asdict(obj)
+        except TypeError:
+            return {f.name: getattr(obj, f.name) for f in fields(obj)}
+
+    if hasattr(obj, "model_dump"):
+        return obj.model_dump()
+    if hasattr(obj, "dict"):
+        return obj.dict()
+
+    if hasattr(obj, "__dict__"):
+        return vars(obj)
+
+    if hasattr(obj, "__slots__"):
+        return {slot: getattr(obj, slot) for slot in getattr(obj, "__slots__", [])}
+
+    return {"repr": repr(obj)}
 
 def check_files_exist(folder_path: Path | str, filenames: list[str]) -> bool:
     folder_path = Path(folder_path)
@@ -109,15 +128,27 @@ class VllmEngine:
 
     @staticmethod
     def get_outputs(response: RequestOutput) -> dict[str, Any]:
-        metainfo = asdict(response.outputs[0])
-        del metainfo["text"], metainfo["token_ids"]
-        metainfo["time_metrics"] = asdict(response.metrics)
-        output_dict = {
+        metainfo = to_dict(response.outputs[0])
+        metainfo.pop("text", None)
+        metainfo.pop("token_ids", None)
+        metainfo["time_metrics"] = to_dict(response.metrics)
+        return {
             "text": response.outputs[0].text,
             "tokens": list(response.outputs[0].token_ids),
             "metainfo": metainfo,
-        }
-        return output_dict
+    }
+
+    # @staticmethod
+    # def get_outputs(response: RequestOutput) -> dict[str, Any]:
+    #     metainfo = asdict(response.outputs[0])
+    #     del metainfo["text"], metainfo["token_ids"]
+    #     metainfo["time_metrics"] = asdict(response.metrics)
+    #     output_dict = {
+    #         "text": response.outputs[0].text,
+    #         "tokens": list(response.outputs[0].token_ids),
+    #         "metainfo": metainfo,
+    #     }
+    #     return output_dict
 
     @staticmethod
     def batch_output(outputs: list[dict[str, Any]]) -> dict[str, list[Any]]:

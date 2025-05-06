@@ -110,6 +110,8 @@ class PlottingBenchmark:
         self.plot_responses = None
 
     def init_gen_model(self, model_name: str):
+        # print plot gen parameters
+        print(f"Plotting model parameters: {self.config.model_plot_gen.parameters}")
         self.model_plot = get_model_by_name(
             model_name,
             dict(self.config.model_plot_gen.parameters),
@@ -260,7 +262,7 @@ class PlottingBenchmark:
             error_rate = round(err_num / total_items, 3)
 
             print(f"[DEBUG] Error rate: {error_rate:.4f}")
-            error_rate_record_file = Path("/data/yuansheng/mix_eval/error_rates.json")
+            error_rate_record_file = Path("/data/yuansheng/qwen3_eval/error_rates.json")
             if error_rate_record_file.exists():
                 with open(error_rate_record_file, "r") as f:
                     error_rates = json.load(f)

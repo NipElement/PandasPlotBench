@@ -20,5 +20,6 @@ kaleido==0.2.1
 python-docx>=1.1.2,<2.0.0
 datasets>=3.1.0,<4.0.0
 fire>=0.7.0,<0.8.0
-vllm==0.6.3    
+vllm==0.6.3
+# vllm==0.8.5 
 code-bert-score 

@@ -14,12 +14,12 @@ def main(limit: int | list[int] | None = None):
     task_changer = None
 
     benchmark = PlottingBenchmark(
-        config_path="configs/config_qwen3.yaml", task_changer=task_changer
+        config_path="configs/test.yaml", task_changer=task_changer
     )
 
     for i in range(1):
         benchmark.run_benchmark(
-            limit, reuse_results=False, load_intermediate=False, only_stats=False,skip_plot=False
+            limit, reuse_results=False, load_intermediate=False, only_stats=False, skip_plot=False
         )
         time.sleep(5)
 

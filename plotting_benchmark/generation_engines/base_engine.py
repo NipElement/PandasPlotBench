@@ -25,7 +25,8 @@ class BaseOpenAIEngine:
     ) -> None:
         api_key = os.getenv(api_key_name)
         if api_key is None:
-            raise ValueError(f"Please provide {api_key_name} in env variables!")
+            # raise ValueError(f"Please provide {api_key_name} in env variables!")
+            print(f"Please provide {api_key_name} in env variables!")
         self.headers = {
             "content-type": "application/json",
             "authorization": f"Bearer {api_key}",

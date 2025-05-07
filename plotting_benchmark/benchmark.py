@@ -51,6 +51,7 @@ class PlottingBenchmark:
             raise ValueError("Provide either config or config path")
         self.config = config
         paths = self.config.paths
+        self.error_rate_file = Path(paths.error_rate_file)
         benchmark_types = config.benchmark_types
         self.model_names = self.config.model_plot_gen.names
 
@@ -257,12 +258,20 @@ class PlottingBenchmark:
                 dataset_df = dataset_df.drop(columns=common_cols)
                 dataset_df = dataset_df.merge(parsed_df, on="id", how="left")
             print("[DEBUG] Skip Score")
-            err_num = (dataset_df["error"] != "").sum()
             total_items = len(dataset_df)
-            error_rate = round(err_num / total_items, 3)
 
-            print(f"[DEBUG] Error rate: {error_rate:.4f}")
-            error_rate_record_file = Path("/data/yuansheng/qwen3_eval/error_rates.json")
+            # 统计 Execution Error Rate（Cell 有错误）
+            execution_error_num = (dataset_df["error"] != "").sum()
+            execution_error_rate = round(execution_error_num / total_items, 4)
+
+            # 统计 Incorrect Code Rate（没有图像生成）
+            incorrect_code_num = (dataset_df["has_plot"] == False).sum()
+            incorrect_code_rate = round(incorrect_code_num / total_items, 4)
+
+            print(f"[DEBUG] Execution error rate (cell error): {execution_error_rate:.4f}")
+            print(f"[DEBUG] Incorrect code rate (no plot): {incorrect_code_rate:.4f}")
+
+            error_rate_record_file = self.error_rate_file
             if error_rate_record_file.exists():
                 with open(error_rate_record_file, "r") as f:
                     error_rates = json.load(f)
@@ -270,12 +279,17 @@ class PlottingBenchmark:
                 error_rates = {}
 
             record_key = f"{model_name}_{plot_lib}"
-            error_rates[record_key] = error_rate
+            error_rates[record_key] = {
+                "execution_error_rate": execution_error_rate,
+                "incorrect_code_rate": incorrect_code_rate
+            }
 
             with open(error_rate_record_file, "w") as f:
                 json.dump(error_rates, f, indent=4)
 
-            exit(0)
+            # exit(0)
+            return dataset_df, {}
+
             dataset_df = self.judge.score(dataset_df)
             self.dump_results(dataset_df)
         bench_stats = self.judge.calculate_stats(dataset_df)

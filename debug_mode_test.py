@@ -6,9 +6,9 @@ from plotting_benchmark.benchmark import PlottingBenchmark
 from plotting_benchmark.custom_task_changer import TaskShortner
 
 
-def main(limit: int | list[int] | None = [3,4,8,14,21]):
+def main(limit: int | list[int] | None = 10):
     # You can limit ids like this:
-    # 10, [0,1,2,3,4,5,6,7], [0,1], None
+    # 10, [0,1,2,3,4,5,6,7], [0,1], None, [3,4,8,14,21]
 
     # task_changer = TaskShortner(shorten_type="short")
     task_changer = None
@@ -21,7 +21,7 @@ def main(limit: int | list[int] | None = [3,4,8,14,21]):
         benchmark.run_benchmark(
             limit, reuse_results=False, load_intermediate=False, only_stats=False, skip_plot=False
         )
-        time.sleep(5)
+        time.sleep(1)
 
     # run_benchmark's flags:
     # reuse_results - if True, does not generate plots, reuses results saved in results_filename.

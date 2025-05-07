@@ -7,7 +7,7 @@ LIMIT=None
 GPUS=(7)
 PYTHON=python
 SCRIPT="batch_eval_run.py"
-LOG_DIR="/data/yuansheng/PandasPlotBenchmark/eval_results/logs/baseline/$(date +%Y%m%d_%H%M%S)"
+LOG_DIR="/mnt/tjena/yuansheng/PandasPlotBench/eval_results/logs/baseline/$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$LOG_DIR"
 
 CHECKPOINTS=(

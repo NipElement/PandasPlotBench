@@ -8,6 +8,12 @@ from datasets import Dataset
 from omegaconf import DictConfig
 from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
 import nbformat
+import re
+import os
+
+def remove_ansi_escape(text: str) -> str:
+    ansi_escape = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
+    return ansi_escape.sub("", text)
 
 def read_jsonl(file_path: str | Path) -> list[dict]:
     data = []
@@ -87,6 +93,7 @@ class VisGenerator:
         self.config = config
         self.csv_folder = Path(csv_folder)
         self.check_csv(dataset)
+        self.debug_plots_nb_path = self.config.debug.output_dir
 
     def check_csv(self, dataset: Dataset) -> None:
         for item in dataset:
@@ -279,8 +286,11 @@ class VisGenerator:
             images = []
             img_num = 0
             for output in cell["outputs"]:
+                # if output.output_type == "error":
+                #     cell_res["error"] = output.ename + ": " + output.evalue
                 if output.output_type == "error":
-                    cell_res["error"] = output.ename + ": " + output.evalue
+                    traceback_raw = "\n".join(output.get("traceback", []))
+                    cell_res["error"] = remove_ansi_escape(traceback_raw)
                 elif (
                     output.output_type == "display_data" and "image/png" in output.data
                 ):
@@ -303,6 +313,26 @@ class VisGenerator:
         plot_lib = self.config.plotting_lib.split(" ")[0]
         self.plots_nb_path, _ = add_index_to_filename(
             self.output_folder, f"plots_{data_descriptor}_{model_name}_{plot_lib}.ipynb"
+        )
+        self.build_plots(dataset)
+        response = self.parse_plots_notebook(self.plots_nb_path)
+        # Removing existing columns from dataset
+        common_cols = dataset.columns.intersection(response.columns).drop("id")
+        dataset = dataset.drop(columns=common_cols)
+        dataset = dataset.merge(response, on="id", how="left")
+
+        return dataset
+    
+    def draw_debug_plots(
+        self,
+        dataset: pd.DataFrame,
+    ) -> pd.DataFrame:
+        model_name = dataset["model"].iloc[0].replace("/", "__")
+        data_descriptor = dataset["data_descriptor"].iloc[0]
+        plot_lib = self.config.plotting_lib.split(" ")[0]
+        os.makedirs(self.debug_plots_nb_path, exist_ok=True)
+        self.plots_nb_path, _ = add_index_to_filename(
+            self.debug_plots_nb_path, f"self_debug_{data_descriptor}_{model_name}_{plot_lib}.ipynb"
         )
         self.build_plots(dataset)
         response = self.parse_plots_notebook(self.plots_nb_path)

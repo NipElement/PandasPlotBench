@@ -157,3 +157,38 @@ class VllmEngine:
             for key, value in d.items():
                 batched_output[key].append(value)
         return dict(batched_output)
+
+    def format_debug_conversation(self, messages: list[dict]) -> str:
+        """专门用于 self debug 模式的多轮对话格式化
+        
+        Args:
+            messages: 消息列表,每个消息包含 content 字段
+        """
+        system_mes = f"<|start_header_id|>system<|end_header_id|>\n\n{self.system_prompt}<|eot_id|>"
+        conversation = ""
+        for msg in messages:
+            if msg.get("is_assistant", False):
+                conversation += f"<|start_header_id|>assistant<|end_header_id|>\n\n{msg['content']}<|eot_id|>"
+            else:
+                conversation += f"<|start_header_id|>user<|end_header_id|>\n\n{msg['content']}<|eot_id|>"
+        conversation += "<|start_header_id|>assistant<|end_header_id|>\n\n"
+        return system_mes + conversation
+    
+    def make_debug_request(self, messages: list[list[dict]]) -> dict:
+        """Handle debug mode requests in batch
+        
+        Args:
+            messages: List of conversation lists, each conversation is a list of message dicts
+            
+        Returns:
+            dict: {"response": list of model responses}
+        """
+        model_inputs = [
+            self.format_debug_conversation(conversation) 
+            for conversation in messages
+        ]
+        
+        # 批量生成
+        response = self.generate(input_texts=model_inputs)
+        
+        return {"response": response["text"]}

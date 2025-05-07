@@ -238,7 +238,27 @@ class PlottingBenchmark:
     ) -> tuple[pd.DataFrame, dict]:
 
         if self.config.get("run_mode", "normal") == "self_debug":
-            return self.run_self_debug(dataset_df, model_name=model_name)
+            plot_lib = (self.config.plotting_lib).split(" ")[0]
+            gen_model_name = "_" + model_name.split("/")[-1]
+            results_file_spostfix = (
+                gen_model_name + "_" + plot_lib + "_" + self.config.data_descriptor
+            )
+            _, old_results_file = add_index_to_filename(
+                self.config.paths.out_folder,
+                self.config.paths.results_filename,
+                results_file_spostfix,
+            )
+            
+            if os.path.exists(old_results_file):
+                dataset_df = self.load_results(ids)
+                return self.run_self_debug(dataset_df, model_name=model_name)
+            else:
+                self.config.run_mode = "normal"
+                dataset_df = self.run_benchmark_model(model_name, ids, reuse_results=False, 
+                                                    load_intermediate=False, only_stats=False, 
+                                                    skip_plot=False)
+                self.config.run_mode = "self_debug"
+                return self.run_self_debug(dataset_df, model_name=model_name)
 
         print(20 * "-")
         print(f"Benchmarking {model_name} model")

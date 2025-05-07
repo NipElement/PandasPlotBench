@@ -4,20 +4,14 @@ CONFIG="configs/config_baseline.yaml"
 LIMIT=None
 # GPUS=(0 1 2 3 4 5 6 7) 
 # GPUS=(4 5 6 7) 
-GPUS=(0)
+GPUS=(7)
 PYTHON=python
 SCRIPT="batch_eval_run.py"
-LOG_DIR="/data/yuansheng/eval_results/logs/baseline/$(date +%Y%m%d_%H%M%S)"
+LOG_DIR="/data/yuansheng/PandasPlotBenchmark/eval_results/logs/baseline/$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$LOG_DIR"
 
 CHECKPOINTS=(
   "Qwen/Qwen2.5-Coder-7B-Instruct"
-)
-
-
-CHECKPOINTS=(
-  "openai/gpt-4o"
-  "openai/gpt-4o-mini"
 )
 
 GPU_COUNT=${#GPUS[@]}

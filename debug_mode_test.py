@@ -14,7 +14,7 @@ def main(limit: int | list[int] | None = [3,4,8,14,21]):
     task_changer = None
 
     benchmark = PlottingBenchmark(
-        config_path="configs/test.yaml", task_changer=task_changer
+        config_path="configs/self_debug_test.yaml", task_changer=task_changer
     )
 
     for i in range(1):

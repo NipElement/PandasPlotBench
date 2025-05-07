@@ -15,6 +15,7 @@ from .code_plot_generator import CodePlotGenerator
 from .task_changer import TaskChanger
 from .vis_generator import VisGenerator, add_index_to_filename
 from .vis_judge import VisJudge
+from .debug_utils import collect_failed_cells, generate_debug_prompts, run_debug_attempts, get_debug_filename
 
 load_dotenv()
 
@@ -177,6 +178,55 @@ class PlottingBenchmark:
 
         return dataset_df
 
+    def run_self_debug(self, dataset_df: pd.DataFrame, model_name: str):
+        plot_lib = self.config.plotting_lib.split(" ")[0]
+        data_descriptor = self.config.data_descriptor
+        output_dir = Path(self.config.debug.output_dir)
+
+        # 1. collect failed items
+        failed_df = collect_failed_cells(dataset_df)
+        print(f"[DEBUG] Collected {len(failed_df)} failed samples for debugging.")
+
+        # 2. build prompts
+        prompts = generate_debug_prompts(failed_df)
+
+        # 3. call model Top-K attempts
+        debug_outputs = run_debug_attempts(
+            self.model_plot,
+            prompts,
+            self.config.debug.top_k,
+            output_dir=output_dir
+        )
+
+        # 4. save all attempts jsonl
+        debug_trials_path = get_debug_filename(
+            output_dir, "debug_trials", model_name, plot_lib, data_descriptor
+        )
+        debug_outputs.to_json(debug_trials_path, orient="records", lines=True, force_ascii=False)
+        print(f"[DEBUG] Debug attempts (Top-K) saved to {debug_trials_path}")
+
+        # 5. update working dataset code with first success
+        for idx, row in debug_outputs.iterrows():
+            if row["debug_success"]:
+                dataset_df.loc[row["id"], "code"] = row["fixed_code"]
+
+        # 6. build new debug notebook
+        new_debug_nb_path = self.plot_generator.build_debug_plots(dataset_df)
+        print(f"[DEBUG] Rebuilt debug notebook: {new_debug_nb_path}")
+
+        # 7. re-execute and get result
+        dataset_df = self.plot_generator.draw_plots(dataset_df)
+        dataset_df["debug_success"] = dataset_df["error"] == ""
+
+        # 8. save debugged final result jsonl
+        debug_result_path = get_debug_filename(
+            output_dir, "debug_result", model_name, plot_lib, data_descriptor
+        )
+        dataset_df.to_json(debug_result_path, orient="records", lines=True, force_ascii=False)
+        print(f"[DEBUG] Final debug results saved to {debug_result_path}")
+
+        return dataset_df
+
     def run_benchmark_model(
         self,
         model_name: str,
@@ -186,6 +236,10 @@ class PlottingBenchmark:
         only_stats: bool = False,
         skip_plot: bool = False,
     ) -> tuple[pd.DataFrame, dict]:
+
+        if self.config.get("run_mode", "normal") == "self_debug":
+            return self.run_self_debug(dataset_df, model_name=model_name)
+
         print(20 * "-")
         print(f"Benchmarking {model_name} model")
         print(20 * "-")

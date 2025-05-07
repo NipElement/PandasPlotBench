@@ -142,6 +142,43 @@ class VisGenerator:
         plot_code_nb = "\n".join(code_blocks)
 
         return plot_code_nb
+    def build_debug_plots(self, dataset: pd.DataFrame) -> Path:
+        """
+        生成并执行 debug 模式的绘图 notebook，输出文件以 debug_ 开头。
+        """
+        plotting_lib = self.config.plotting_lib.lower()
+        setup_cell = []
+        if "lets-plot" in plotting_lib:
+            setup_cell = ["# Setup\n!pip install lets-plot\n"
+                        "!jupyter nbextension install lets-plot --py --sys-prefix\n"
+                        "!jupyter nbextension enable lets-plot --py --sys-prefix"]
+
+        cells = setup_cell + dataset.apply(
+            self.generate_code, axis=1, args=(plotting_lib,)
+        ).tolist()
+        self.build_new_nb(cells)
+
+        debug_nb_path = self.plots_nb_path.with_name("debug_" + self.plots_nb_path.name)
+
+        with open(self.plots_nb_path) as f:
+            nb = nbformat.read(f, as_version=4)
+
+        ep = ExecutePreprocessor(
+            timeout=10,
+            interrupt_on_timeout=True,
+            allow_errors=True,
+            kernel_name="python3",
+        )
+
+        try:
+            ep.preprocess(nb, {"metadata": {"path": "."}})
+        except CellExecutionError as e:
+            print(f"[WARNING] Execution stopped early in debug: {e}")
+
+        with open(debug_nb_path, "w", encoding="utf-8") as f:
+            nbformat.write(nb, f)
+
+        return debug_nb_path
 
     def build_plots(self, dataset: pd.DataFrame) -> Path:
         plotting_lib = self.config.plotting_lib.lower()

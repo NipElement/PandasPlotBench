@@ -35,6 +35,7 @@ def generate_self_debug_conversation(failed_df: pd.DataFrame) -> list[tuple[str,
     
     return conversations
 
+
 def extract_code_from_response(response: str | list) -> str:
     """Extract code from response text
     

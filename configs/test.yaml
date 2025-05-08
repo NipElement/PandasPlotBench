@@ -1,7 +1,7 @@
 # run_mode: "normal"
 run_mode: "self_debug"
 debug:
-  top_k: 1
+  top_k: 2
   output_dir: "debug_results/test/matplotlib/"
 paths:
   out_folder: "eval_results/test/matplotlib/" # for output files

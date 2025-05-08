@@ -1,4 +1,4 @@
-run_mode: "self_debug"
+run_mode: "normal"
 debug:
   top_k: 1
   output_dir: "debug_results/test/matplotlib/"
@@ -13,10 +13,7 @@ benchmark_types: ["vis", "task"] # Options: "vis", "task", "codebert"
 plotting_lib: "matplotlib" # "matplotlib", "seaborn", "plotly", "lets-plot" (does not work)
 data_descriptor: "head" # data descriptor. Options: "pycharm", "datalore", "lida", "head", "describe", "empty"
 model_plot_gen:
-  # names: ["Qwen/Qwen2.5-Coder-7B-Instruct"]
-  # names: ["/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-1250"]
-  # names: ["/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-2500"]
-  names: ["/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-3750"]
+  names: ["Qwen/Qwen2.5-Coder-7B-Instruct"]
 
   parameters: # List of additional model parameters.
     temperature: 0.0

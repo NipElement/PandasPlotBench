@@ -93,7 +93,8 @@ class VisGenerator:
         self.config = config
         self.csv_folder = Path(csv_folder)
         self.check_csv(dataset)
-        self.debug_plots_nb_path = self.config.debug.output_dir
+        if self.config.run_mode == "self_debug":
+            self.debug_plots_nb_path = self.config.debug.output_dir
 
     def check_csv(self, dataset: Dataset) -> None:
         for item in dataset:
@@ -151,7 +152,7 @@ class VisGenerator:
         return plot_code_nb
     def build_debug_plots(self, dataset: pd.DataFrame) -> Path:
         """
-        生成并执行 debug 模式的绘图 notebook，输出文件以 debug_ 开头。
+        Generate and execute the plotting notebook for debug mode, output file starts with "debug_".
         """
         plotting_lib = self.config.plotting_lib.lower()
         setup_cell = []

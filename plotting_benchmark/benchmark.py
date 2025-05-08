@@ -215,7 +215,8 @@ class PlottingBenchmark:
                 debug_info[item_id]["attempts"][attempt] = {
                     "model_response": response,
                     "error": "",
-                    "has_plot": False
+                    "has_plot": False,
+                    "plots_generated": []  # 初始化plots_generated字段
                 }
         
         debug_rows = []
@@ -235,7 +236,8 @@ class PlottingBenchmark:
                 attempt = str(idx % self.config.debug.top_k)
                 debug_info[item_id]["attempts"][attempt].update({
                     "error": row["error"],
-                    "has_plot": row["has_plot"]
+                    "has_plot": row["has_plot"],
+                    "plots_generated": row.get("plots_generated", [])  # 保存每次尝试生成的图片
                 })
         
         dataset_df["debug_info"] = dataset_df["id"].apply(
@@ -309,7 +311,7 @@ class PlottingBenchmark:
             with open(error_rate_record_file, "w") as f:
                 json.dump(error_rates, f, indent=4)
         
-        return dataset_df
+        return dataset_df, {}
 
     def run_benchmark_model(
         self,
@@ -318,7 +320,7 @@ class PlottingBenchmark:
         reuse_results: bool = False,
         load_intermediate: bool = False,
         only_stats: bool = False,
-        skip_plot: bool = False,
+        skip_score: bool = False,
     ) -> tuple[pd.DataFrame, dict]:
 
         if self.config.get("run_mode", "normal") == "self_debug":
@@ -340,9 +342,10 @@ class PlottingBenchmark:
                 return self.run_self_debug(dataset_df, model_name=model_name)
             else:
                 self.config.run_mode = "normal"
-                self.run_benchmark_model(model_name, ids, reuse_results=False, 
-                                                    load_intermediate=False, only_stats=False, 
-                                                    skip_plot=False)
+                self.run_benchmark_model(model_name, ids, reuse_results=reuse_results, 
+                                                    load_intermediate=load_intermediate, 
+                                                    only_stats=only_stats, 
+                                                    skip_score=skip_score)
                 self.config.run_mode = "self_debug"
                 dataset_df = self.load_results(ids)
                 return self.run_self_debug(dataset_df, model_name=model_name)
@@ -360,7 +363,7 @@ class PlottingBenchmark:
             self.config.paths.results_filename,
             results_file_spostfix,
         )
-        print(f"[DEBUG]: Reuse: {reuse_results}, Load: {load_intermediate}, Only stats: {only_stats}")
+        print(f"[DEBUG]: Reuse: {reuse_results}, Load: {load_intermediate}, Only stats: {only_stats}, Skip score: {skip_score}")
         print(f"[DEBUG] New results file: {new_results_file}")
         print(f"[DEBUG] Old results file: {old_results_file}")
         if reuse_results or only_stats:
@@ -386,48 +389,15 @@ class PlottingBenchmark:
             if self.model_plot.__class__.__name__ == "VllmEngine":
                 self.kill_vllm()
 
-        # if not only_stats:
-        #     dataset_df = self.plot_generator.draw_plots(dataset_df)
-        #     dataset_df = self.judge.score(dataset_df)
-        #     self.dump_results(dataset_df)
         if not only_stats:
-            if not skip_plot:
-                print("[DEBUG] Drawing plots...")
-                dataset_df = self.plot_generator.draw_plots(dataset_df)
-                self.dump_results(dataset_df)
-            else:
-                print("[DEBUG] Skipping plot rendering.")
-                model_name = dataset_df["model"].iloc[0].replace("/", "__")
-                data_descriptor = dataset_df["data_descriptor"].iloc[0]
-                plot_lib = self.config.plotting_lib.split(" ")[0]
-                json_filename = Path(self.results_file).name
-                notebook_index = json_filename.split("_")[-1].replace(".json", "")
-                expected_nb_path = (
-                    Path(self.config.paths.out_folder) /
-                    f"plots_{data_descriptor}_{model_name}_{plot_lib}_{notebook_index}.ipynb"
-                )
-
-                if not expected_nb_path.exists():
-                    raise FileNotFoundError(
-                        f"Notebook {expected_nb_path} not found. Cannot extract plots!"
-                    )
-
-                print(f"[DEBUG] Loading plots from notebook {expected_nb_path}")
-                parsed_df = self.plot_generator.parse_plots_notebook(expected_nb_path)
-
-                # Remove any old columns from dataset that will be overwritten
-                common_cols = dataset_df.columns.intersection(parsed_df.columns).drop("id")
-                dataset_df = dataset_df.drop(columns=common_cols)
-                dataset_df = dataset_df.merge(parsed_df, on="id", how="left")
-                self.dump_results(dataset_df)
-            print("[DEBUG] Skip Score")
+            print("[INFO] Drawing plots...")
+            dataset_df = self.plot_generator.draw_plots(dataset_df)
+            self.dump_results(dataset_df)
+            
+            # 记录错误率统计
             total_items = len(dataset_df)
-
-            # 统计 Execution Error Rate（Cell 有错误）
             execution_error_num = (dataset_df["error"] != "").sum()
             execution_error_rate = round(execution_error_num / total_items, 4)
-
-            # 统计 Incorrect Code Rate（没有图像生成）
             incorrect_code_num = (dataset_df["has_plot"] == False).sum()
             incorrect_code_rate = round(incorrect_code_num / total_items, 4)
 
@@ -453,11 +423,24 @@ class PlottingBenchmark:
             with open(error_rate_record_file, "w") as f:
                 json.dump(error_rates, f, indent=4)
 
-            # exit(0)
-            return dataset_df, {}
-
+            if skip_score:
+                print("[DEBUG] Skipping score calculation")
+                return dataset_df, {}
+            
+            # 执行评分和统计
+            print("[DEBUG] Calculating scores...")
             dataset_df = self.judge.score(dataset_df)
             self.dump_results(dataset_df)
+            
+            bench_stats = self.judge.calculate_stats(dataset_df)
+            with open(self.bench_stat_file, "a") as f:
+                json.dump(bench_stats, f)
+                f.write("\n")
+            print(f"Benchmark stats saved in {self.bench_stat_file}")
+            
+            return dataset_df, bench_stats
+
+        # only_stats 的情况
         bench_stats = self.judge.calculate_stats(dataset_df)
         with open(self.bench_stat_file, "a") as f:
             json.dump(bench_stats, f)
@@ -472,7 +455,7 @@ class PlottingBenchmark:
         reuse_results: bool = False,
         load_intermediate: bool = False,
         only_stats: bool = False,
-        skip_plot: bool = False,
+        skip_score: bool = False,
     ) -> None:
         for model_name in self.model_names:
             self.run_benchmark_model(
@@ -481,5 +464,5 @@ class PlottingBenchmark:
                 reuse_results,
                 load_intermediate,
                 only_stats,
-                skip_plot,
+                skip_score,
             )

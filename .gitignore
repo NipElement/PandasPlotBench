@@ -72,3 +72,8 @@ docs/api/
 *.swp
 *.swo
 .DS_Store
+
+# Debug results
+debug_results/
+eval_results/
+logs/

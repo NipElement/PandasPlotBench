@@ -180,7 +180,7 @@ class PlottingBenchmark:
 
     def run_self_debug(self, dataset_df: pd.DataFrame, model_name: str):
         """Run self debug mode while maintaining original eval structure"""
-        
+        print(f"[DEBUG] Running self debug mode for {model_name}")
         failed_df = collect_failed_cells(dataset_df)
         print(f"[DEBUG] Found {len(failed_df)} failed cases")
         

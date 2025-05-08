@@ -2,8 +2,9 @@
 CONFIG="configs/self_debug.yaml"
 # LIMIT="[0,1,2,3,4,5,6,7,8,9]" 
 LIMIT=None
-GPUS=(0 1 2 3 4 5 6 7) 
-# GPUS=(4 5 6 7) 
+# GPUS=(0 1 2 3 4 5 6 7) 
+GPUS=(0 1 2) 
+# GPUS=(3 4 5) 
 # GPUS=(7)
 PYTHON=python
 SCRIPT="batch_eval_self_debug_run.py"
@@ -18,22 +19,33 @@ mkdir -p "$LOG_DIR"
 #   "meta-llama/Llama-3.2-1B-Instruct"
 # )
 
+# CHECKPOINTS=(
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-250"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-500"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-750"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-1000"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-1250"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-1500"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-1750"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-2000"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-2250"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-2500"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-2750"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-3000"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-3250"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-3500"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-3750"
+# )
+
+# CHECKPOINTS=(
+#   "Qwen/Qwen3-4B"
+#   "Qwen/Qwen3-8B"
+# )
+
 CHECKPOINTS=(
-  "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-250"
-  "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-500"
-  "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-750"
-  "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-1000"
-  "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-1250"
-  "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-1500"
-  "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-1750"
-  "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-2000"
-  "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-2250"
-  "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-2500"
-  "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-2750"
-  "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-3000"
-  "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-3250"
-  "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-3500"
-  "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-3750"
+  "/data/yuansheng/checkpoint/qwen3_4b_stage4_lr5e6/epoch1"
+  "/data/yuansheng/checkpoint/qwen3_4b_stage4_lr5e6/epoch2"
+  "/data/yuansheng/checkpoint/qwen3_4b_stage4_lr5e6/epoch3"
 )
 
 GPU_COUNT=${#GPUS[@]}

@@ -314,101 +314,93 @@ class PlottingBenchmark:
         return dataset_df, {}
 
     def run_self_debug_test(self, dataset_df: pd.DataFrame, model_name: str):
-        """使用新的 DebugSession 实现的调试逻辑"""
-        from plotting_benchmark.test_debug_utils import DebugSession, DebugAttempt
-        
-        # 确保模型已初始化
+        from plotting_benchmark.test_debug_utils import DebugSession, collect_failed_cells
+
         if not hasattr(self, 'model_plot'):
             print("[DEBUG] Model not initialized. Initializing now...")
             self.init_gen_model(model_name)
-        
+
         debug_session = DebugSession(
             model_name=model_name,
             output_dir=self.config.debug.output_dir,
             max_attempts=self.config.debug.top_k
         )
-        
-        # 对于每次尝试
+
+        # 初始化 debug_info，只为失败的样本准备空结构，其他为 None
+        debug_info_map = {
+            str(row["id"]): {"attempts": {}} 
+            for _, row in collect_failed_cells(dataset_df).iterrows()
+        }
+
         for attempt_id in range(debug_session.max_attempts):
             print(f"[DEBUG] Starting attempt {attempt_id + 1}/{debug_session.max_attempts}")
-            
-            # 尝试加载之前的结果
-            previous_results = debug_session.load_previous_attempt(attempt_id - 1) if attempt_id > 0 else None
-            
-            if attempt_id == 0 or previous_results is None:
-                # 第一次尝试或无法加载之前的结果
-                current_failed_df = collect_failed_cells(dataset_df)
-            else:
-                # 基于之前的结果继续调试
-                current_failed_df = collect_failed_cells(previous_results)
-            
+            current_failed_df = collect_failed_cells(dataset_df)
+
             if len(current_failed_df) == 0:
                 print(f"[DEBUG] No failed cases to fix in attempt {attempt_id + 1}")
                 break
-            
+
             print(f"[DEBUG] Found {len(current_failed_df)} cases to fix in attempt {attempt_id + 1}")
-            
-            # 生成调试对话
             debug_conversations = []
+
             for _, row in current_failed_df.iterrows():
                 item_id = str(row['id'])
-                previous_attempts = debug_session.debug_info.get(item_id, [])
-                conversation = debug_session.generate_debug_conversation(
-                    row, attempt_id, previous_attempts
-                )
-                debug_conversations.append((item_id, conversation))
-            
-            # 准备模型请求
-            all_messages = [conv for _, conv in debug_conversations]
-            
-            # 发送请求获取响应
-            responses = self.model_plot.make_debug_request(all_messages)
-            
-            # 处理响应
-            debug_rows = []
-            for i, (item_id, _) in enumerate(debug_conversations):
-                response = responses["response"][i]
-                
-                # 创建新的数据行
-                debug_row = {
-                    "id": int(item_id),
-                    "code": CodePlotGenerator.gather_code(response),
-                    "model_response": response,
+                attempts = debug_info_map[item_id]["attempts"]
+                previous_attempts = list(attempts.values())
+
+                conversation = debug_session.generate_debug_conversation(row, attempt_id, previous_attempts)
+
+                attempts[str(attempt_id)] = {
+                    "original_error": row["error"],
+                    "original_has_plot": row["has_plot"],
+                    "debug_conversation": conversation,
+                    "model_response": None,
+                    "code": "",
                     "error": "",
                     "has_plot": False,
                     "plots_generated": []
                 }
-                debug_rows.append(debug_row)
-            
-            # 创建DataFrame并执行代码生成图片
+
+                debug_conversations.append((item_id, conversation))
+
+            all_messages = [conv for _, conv in debug_conversations]
+            responses = self.model_plot.make_debug_request(all_messages)
+
+            for i, (item_id, _) in enumerate(debug_conversations):
+                response = responses["response"][i]
+                attempts = debug_info_map[item_id]["attempts"]
+                attempts[str(attempt_id)]["model_response"] = response
+                attempts[str(attempt_id)]["code"] = CodePlotGenerator.gather_code(response)
+
+            # 执行绘图
+            debug_rows = []
+            for _, row in current_failed_df.iterrows():
+                item_id = str(row["id"])
+                code = debug_info_map[item_id]["attempts"][str(attempt_id)]["code"]
+                new_row = row.copy()
+                new_row["code"] = code
+                debug_rows.append(new_row)
+
             debug_df = pd.DataFrame(debug_rows)
-            debug_df = self.plot_generator.draw_debug_plots(debug_df)
-            
-            # 保存结果
-            debug_df.to_json(debug_session.get_attempt_result_path(attempt_id))
-            
-            # 更新调试信息
+            debug_df = self.plot_generator.draw_debug_plots(debug_df, attempt_id=attempt_id)
+
             for _, row in debug_df.iterrows():
-                item_id = str(row['id'])
-                attempt = DebugAttempt(
-                    attempt_id=attempt_id,
-                    code=row['code'],
-                    error=row['error'],
-                    has_plot=row['has_plot'],
-                    plots_generated=row.get('plots_generated', []),
-                    model_response=row['model_response'],
-                    conversation=next(conv for id_, conv in debug_conversations if id_ == item_id)
-                )
-                if item_id not in debug_session.debug_info:
-                    debug_session.debug_info[item_id] = []
-                debug_session.debug_info[item_id].append(attempt)
-        
-        # 更新最终结果
-        dataset_df['debug_info'] = dataset_df['id'].apply(
-            lambda x: debug_session.debug_info.get(str(x))
-        )
-        
+                item_id = str(row["id"])
+                debug_info_map[item_id]["attempts"][str(attempt_id)].update({
+                    "error": row["error"],
+                    "has_plot": row["has_plot"],
+                    "plots_generated": row.get("plots_generated", [])
+                })
+
+
+        dataset_df["debug_info"] = dataset_df["id"].apply(lambda x: debug_info_map.get(str(x), None))
+        self.dump_results(dataset_df)
+
         return dataset_df, {}
+
+
+
+
 
     def run_benchmark_model(
         self,

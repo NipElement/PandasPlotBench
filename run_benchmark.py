@@ -21,7 +21,7 @@ def main(limit: int | list[int] | None = [3,4,8,14,21]):
         benchmark.run_benchmark(
             limit, reuse_results=False, load_intermediate=False, only_stats=False, skip_score=True
         )
-        time.sleep(5)
+        time.sleep(1)
 
     # run_benchmark's flags:
     # reuse_results - if True, does not generate plots, reuses results saved in results_filename.

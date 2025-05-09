@@ -1,11 +1,4 @@
 import pandas as pd
-import uuid
-import tempfile
-import traceback
-import nbformat
-from pathlib import Path
-from nbconvert.preprocessors import ExecutePreprocessor
-from pathlib import Path
 
 def collect_failed_cells(df: pd.DataFrame) -> pd.DataFrame:
     return df[(df["error"] != "") | (~df["has_plot"])].copy()
@@ -35,16 +28,4 @@ def generate_self_debug_conversation(failed_df: pd.DataFrame) -> list[tuple[str,
     
     return conversations
 
-
-def extract_code_from_response(response: str | list) -> str:
-    """Extract code from response text
-    
-    Args:
-        response: Response text or list of response texts
-    """
-    text = response[0] if isinstance(response, list) else response
-    
-    import re
-    match = re.search(r"```(?:python)?\n(.*?)```", text, re.DOTALL)
-    return match.group(1).strip() if match else text.strip()
 

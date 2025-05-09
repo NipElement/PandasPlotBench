@@ -327,13 +327,14 @@ class VisGenerator:
     def draw_debug_plots(
         self,
         dataset: pd.DataFrame,
+        attempt_id: int,
     ) -> pd.DataFrame:
         model_name = dataset["model"].iloc[0].replace("/", "__")
         data_descriptor = dataset["data_descriptor"].iloc[0]
         plot_lib = self.config.plotting_lib.split(" ")[0]
         os.makedirs(self.debug_plots_nb_path, exist_ok=True)
         self.plots_nb_path, _ = add_index_to_filename(
-            self.debug_plots_nb_path, f"self_debug_{data_descriptor}_{model_name}_{plot_lib}.ipynb"
+            self.debug_plots_nb_path, f"self_debug_attempt_{attempt_id}_{data_descriptor}_{model_name}_{plot_lib}.ipynb"
         )
         self.build_plots(dataset)
         response = self.parse_plots_notebook(self.plots_nb_path)

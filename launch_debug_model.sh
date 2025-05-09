@@ -3,7 +3,7 @@ CONFIG="configs/self_debug.yaml"
 # LIMIT="[0,1,2,3,4,5,6,7,8,9]" 
 LIMIT=None
 # GPUS=(0 1 2 3 4 5 6 7) 
-GPUS=(0 1 2) 
+GPUS=(4 5 6 7) 
 # GPUS=(3 4 5) 
 # GPUS=(7)
 PYTHON=python
@@ -11,13 +11,13 @@ SCRIPT="batch_eval_self_debug_run.py"
 LOG_DIR="eval_results/logs/self_debug/$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$LOG_DIR"
 
-# CHECKPOINTS=(
-#   "Qwen/Qwen2.5-7B-Instruct"
-#   "Qwen/Qwen2.5-Coder-7B-Instruct"
-#   "meta-llama/Llama-3.1-8B-Instruct"
-#   "meta-llama/Llama-3.2-3B-Instruct"
-#   "meta-llama/Llama-3.2-1B-Instruct"
-# )
+CHECKPOINTS=(
+  "Qwen/Qwen2.5-7B-Instruct"
+  "Qwen/Qwen2.5-Coder-7B-Instruct"
+  "meta-llama/Llama-3.1-8B-Instruct"
+  "meta-llama/Llama-3.2-3B-Instruct"
+  "meta-llama/Llama-3.2-1B-Instruct"
+)
 
 # CHECKPOINTS=(
 #   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-250"
@@ -42,11 +42,11 @@ mkdir -p "$LOG_DIR"
 #   "Qwen/Qwen3-8B"
 # )
 
-CHECKPOINTS=(
-  "/data/yuansheng/checkpoint/qwen3_4b_stage4_lr5e6/epoch1"
-  "/data/yuansheng/checkpoint/qwen3_4b_stage4_lr5e6/epoch2"
-  "/data/yuansheng/checkpoint/qwen3_4b_stage4_lr5e6/epoch3"
-)
+# CHECKPOINTS=(
+#   "/data/yuansheng/checkpoint/qwen3_4b_stage4_lr5e6/epoch1"
+#   "/data/yuansheng/checkpoint/qwen3_4b_stage4_lr5e6/epoch2"
+#   "/data/yuansheng/checkpoint/qwen3_4b_stage4_lr5e6/epoch3"
+# )
 
 GPU_COUNT=${#GPUS[@]}
 TOTAL=${#CHECKPOINTS[@]}
@@ -66,7 +66,7 @@ for ((i=0; i<TOTAL; i+=GPU_COUNT)); do
       --config=$CONFIG \
       > "$LOG_FILE" 2>&1 &
 
-    sleep 2 
+    sleep 1
   done
 
   wait 

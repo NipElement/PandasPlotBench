@@ -15,7 +15,7 @@ from .code_plot_generator import CodePlotGenerator
 from .task_changer import TaskChanger
 from .vis_generator import VisGenerator, add_index_to_filename
 from .vis_judge import VisJudge
-from .debug_utils import DebugSession, collect_failed_cells
+from .debug_utils import DebugSession, collect_failed_cells, update_error_rate_statistics
 
 load_dotenv()
 
@@ -178,145 +178,7 @@ class PlottingBenchmark:
 
         return dataset_df
 
-    def pre_run_self_debug(self, dataset_df: pd.DataFrame, model_name: str):
-        """Run self debug mode while maintaining original eval structure"""
-        print(f"[DEBUG] Running self debug mode for {model_name}")
-        failed_df = collect_failed_cells(dataset_df)
-        print(f"[DEBUG] Found {len(failed_df)} failed cases")
-        
-        debug_conversations = generate_self_debug_conversation(failed_df)
-        
-        debug_info = {}
-        all_messages = []
-        id_to_attempts = {}
-        
-        for item_id, conversation in debug_conversations:
-            original_row = failed_df[failed_df['id'] == int(item_id)].iloc[0]
-            debug_info[item_id] = {
-                "original_error": original_row["error"],
-                "original_has_plot": original_row["has_plot"],
-                "debug_conversation": conversation,
-                "attempts": {}
-            }
-            
-            for attempt in range(self.config.debug.top_k):
-                all_messages.append(conversation)
-                id_to_attempts[len(all_messages)-1] = (item_id, str(attempt))
-        
-        if not hasattr(self, 'model_plot'):
-            print("[DEBUG] Model not initialized. Initializing now...")
-            self.init_gen_model(model_name)
-            
-        if all_messages:
-            responses = self.model_plot.make_debug_request(all_messages)
-            
-            for i, response in enumerate(responses["response"]):
-                item_id, attempt = id_to_attempts[i]
-                debug_info[item_id]["attempts"][attempt] = {
-                    "model_response": response,
-                    "error": "",
-                    "has_plot": False,
-                    "plots_generated": []  # 初始化plots_generated字段
-                }
-        
-        debug_rows = []
-        for item_id, info in debug_info.items():
-            original_row = failed_df[failed_df['id'] == int(item_id)].iloc[0]
-            for attempt, attempt_info in info["attempts"].items():
-                debug_row = original_row.copy()
-                debug_row["code"] = CodePlotGenerator.gather_code(attempt_info["model_response"])
-                debug_rows.append(debug_row)
-        
-        if debug_rows:
-            debug_df = pd.DataFrame(debug_rows)
-            debug_df = self.plot_generator.draw_debug_plots(debug_df)
-            
-            for idx, row in debug_df.iterrows():
-                item_id = str(row['id'])
-                attempt = str(idx % self.config.debug.top_k)
-                debug_info[item_id]["attempts"][attempt].update({
-                    "error": row["error"],
-                    "has_plot": row["has_plot"],
-                    "plots_generated": row.get("plots_generated", [])  # 保存每次尝试生成的图片
-                })
-        
-        dataset_df["debug_info"] = dataset_df["id"].apply(
-            lambda x: debug_info.get(str(x), None)
-        )
-        
-        self.dump_results(dataset_df)
-        
-        error_rate_record_file = self.error_rate_file
-        if error_rate_record_file.exists():
-            with open(error_rate_record_file, "r") as f:
-                error_rates = json.load(f)
-        else:
-            error_rates = {}
-        
-        # 统计debug修复情况
-        total_debug_cases = len(debug_info)
-        attempt_stats = {}
-        
-        # 初始化每个attempt的统计
-        for k in range(self.config.debug.top_k):
-            attempt_stats[k] = {
-                "total_num": total_debug_cases,
-                "execution_error_num": 0,
-                "execution_error_rate": 0,
-                "incorrect_plot_num": 0,
-                "incorrect_plot_rate": 0
-            }
-        
-        # 统计每个attempt的情况
-        for item_id, info in debug_info.items():
-            for attempt_idx in range(self.config.debug.top_k):
-                attempt = str(attempt_idx)
-                if attempt not in info["attempts"]:
-                    continue
-                
-                # 统计执行错误
-                if info["attempts"][attempt]["error"] != "":
-                    attempt_stats[attempt_idx]["execution_error_num"] += 1
-                
-                # 统计图像生成情况
-                if not info["attempts"][attempt]["has_plot"]:
-                    attempt_stats[attempt_idx]["incorrect_plot_num"] += 1
-        
-        # 计算每个attempt的错误率
-        for k in range(self.config.debug.top_k):
-            stats = attempt_stats[k]
-            total = stats["total_num"]
-            if total > 0:
-                stats["execution_error_rate"] = round(stats["execution_error_num"] / total, 4)
-                stats["incorrect_plot_rate"] = round(stats["incorrect_plot_num"] / total, 4)
-        
-        # 更新error_rates记录
-        record_key = f"{model_name}_{self.config.plotting_lib.split(' ')[0]}"
-        if record_key in error_rates:
-            error_rates[record_key].update({
-                "debug_total_cases": int(total_debug_cases),
-                "debug_attempts": {
-                    f"attempt_{k}": {
-                        "total_num": int(stats["total_num"]),
-                        "execution_error_num": int(stats["execution_error_num"]),
-                        "execution_error_rate": float(stats["execution_error_rate"]),
-                        "incorrect_plot_num": int(stats["incorrect_plot_num"]),
-                        "incorrect_plot_rate": float(stats["incorrect_plot_rate"])
-                    }
-                    for k, stats in attempt_stats.items()
-                }
-            })
-            
-            with open(error_rate_record_file, "w") as f:
-                json.dump(error_rates, f, indent=4)
-        
-        return dataset_df, {}
-
     def run_self_debug(self, dataset_df: pd.DataFrame, model_name: str):
-
-        if not hasattr(self, 'model_plot'):
-            print("[INFO] Model not initialized. Initializing now...")
-            self.init_gen_model(model_name)
 
         debug_session = DebugSession(
             model_name=model_name,
@@ -334,26 +196,44 @@ class PlottingBenchmark:
                 row["id"]: {"attempts": {}} 
                 for _, row in initial_failed_df.iterrows()
             }
-        
+
+        remaining_failed_df = initial_failed_df.copy()
+
         for attempt_id in range(debug_session.max_attempts):
             print(f"[DEBUG] Starting attempt {attempt_id + 1}/{debug_session.max_attempts}")
             
-            if attempt_id == 0:
-                current_failed_df = initial_failed_df
-            else:
-                current_failed_items = []
-                for _, row in initial_failed_df.iterrows():
+            if attempt_id > 0:
+                fixed_ids = []
+                for _, row in remaining_failed_df.iterrows():
                     item_id = row["id"]
                     prev_attempt = debug_info_map[item_id]["attempts"].get(str(attempt_id - 1))
-                    if prev_attempt and (prev_attempt["error"] != ""):
-                        current_failed_items.append(row)
-                current_failed_df = pd.DataFrame(current_failed_items)
+                    if prev_attempt and prev_attempt["error"] == "" and prev_attempt["has_plot"]:
+                        fixed_ids.append(item_id)
+                
+                if fixed_ids:
+                    remaining_failed_df = remaining_failed_df[~remaining_failed_df["id"].isin(fixed_ids)]
+                    print(f"[DEBUG] {len(fixed_ids)} cases were fixed in previous attempt")
+            
+            current_failed_items = []
+            for _, row in remaining_failed_df.iterrows():
+                item_id = row["id"]
+                debug_info = debug_info_map[item_id]
+                
+                if str(attempt_id) not in debug_info["attempts"]:
+                    current_failed_items.append(row)
+                
+            current_failed_df = pd.DataFrame(current_failed_items) if current_failed_items else pd.DataFrame()
 
             if len(current_failed_df) == 0:
-                print(f"[DEBUG] No failed cases to fix in attempt {attempt_id + 1}")
-                break
-
+                print(f"[DEBUG] No remaining cases to fix in attempt {attempt_id + 1}")
+                continue
+            
             print(f"[DEBUG] Found {len(current_failed_df)} cases to fix in attempt {attempt_id + 1}")
+            
+            if not hasattr(self, 'model_plot'):
+                print("[INFO] Model not initialized. Initializing now...")
+                self.init_gen_model(model_name)
+            
             debug_conversations = []
 
             for _, row in current_failed_df.iterrows():
@@ -424,9 +304,15 @@ class PlottingBenchmark:
             
             dataset_df["debug_info"] = dataset_df["id"].apply(lambda x: debug_info_map.get(x, None))
             self.dump_results(dataset_df)
-        
-        self.kill_vllm()
+        if hasattr(self, 'model_plot'):
+            self.kill_vllm()
 
+        update_error_rate_statistics(
+            error_rate_file=self.error_rate_file,
+            model_name=model_name,
+            plotting_lib=self.config.plotting_lib,
+            dataset_df=dataset_df
+        )
         return dataset_df, {}
 
     def run_benchmark_model(
@@ -455,8 +341,7 @@ class PlottingBenchmark:
                 self.results_file = old_results_file
                 print(f"[DEBUG] Loading results from {self.results_file}")
                 dataset_df = self.load_results(ids)
-                # return self.run_self_debug(dataset_df, model_name=model_name)
-                return self.run_self_debug_test(dataset_df, model_name=model_name)
+                return self.run_self_debug(dataset_df, model_name=model_name)
             else:
                 self.config.run_mode = "normal"
                 self.run_benchmark_model(model_name, ids, reuse_results=reuse_results, 
@@ -465,8 +350,7 @@ class PlottingBenchmark:
                                                     skip_score=skip_score)
                 self.config.run_mode = "self_debug"
                 dataset_df = self.load_results(ids)
-                # return self.run_self_debug(dataset_df, model_name=model_name)
-                return self.run_self_debug_test(dataset_df, model_name=model_name)
+                return self.run_self_debug(dataset_df, model_name=model_name)
 
         print(20 * "-")
         print(f"Benchmarking {model_name} model")
@@ -512,15 +396,9 @@ class PlottingBenchmark:
             dataset_df = self.plot_generator.draw_plots(dataset_df)
             self.dump_results(dataset_df)
             
-            # 记录错误率统计
             total_items = len(dataset_df)
             execution_error_num = (dataset_df["error"] != "").sum()
-            execution_error_rate = round(execution_error_num / total_items, 4)
-            incorrect_code_num = (dataset_df["has_plot"] == False).sum()
-            incorrect_code_rate = round(incorrect_code_num / total_items, 4)
-
-            print(f"[DEBUG] Execution error rate (cell error): {execution_error_rate:.4f}")
-            print(f"[DEBUG] Incorrect code rate (no plot): {incorrect_code_rate:.4f}")
+            incorrect_plot_num = (dataset_df["has_plot"] == False).sum()
 
             error_rate_record_file = self.error_rate_file
             if error_rate_record_file.exists():
@@ -533,9 +411,7 @@ class PlottingBenchmark:
             error_rates[record_key] = {
                 "total_num": int(total_items),
                 "execution_error_num": int(execution_error_num),
-                "execution_error_rate": float(execution_error_rate),
-                "incorrect_code_num": int(incorrect_code_num),
-                "incorrect_code_rate": float(incorrect_code_rate)
+                "incorrect_plot_num": int(incorrect_plot_num)
             }
 
             with open(error_rate_record_file, "w") as f:

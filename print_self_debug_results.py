@@ -4,10 +4,10 @@ import pandas as pd
 from collections import defaultdict
 import re
 
-TARGET_LIB = "plotly"  # "seaborn", "plotly" 
-
-# error_rate_path = Path("/data/yuansheng/PandasPlotBench/eval_results/baseline_self_debug.json")
-error_rate_path = Path("/data/yuansheng/PandasPlotBench/eval_results/qwen2_5_7b_coder_stage4_lr5e6_self_debug.json")
+TARGET_LIB = "seaborn"  # matplotlib, seaborn, plotly 
+ATTEMPT_TO_PRINT = 2  # None表示只打印初始结果，0/1/2表示打印对应attempt的修复结果
+# error_rate_path = Path("eval_results/qwen2_5_7b_coder_stage4_lr5e6_self_debug.json")
+error_rate_path = Path("eval_results/baseline_self_debug.json")
 
 with open(error_rate_path, "r") as f:
     data = json.load(f)
@@ -26,25 +26,44 @@ for key, value in data.items():
     
     # 原始错误率
     exec_errors = value["execution_error_num"]
-    plot_errors = value["incorrect_code_num"]
+    plot_errors = value["incorrect_plot_num"]
     results[model_name]["ExecErr"] = (exec_errors / total_cases) * 100
     results[model_name]["PlotErr"] = (plot_errors / total_cases) * 100
     
-    # Debug相关统计
-    if "debug_attempts" in value and "attempt_0" in value["debug_attempts"]:
-        debug_stats = value["debug_attempts"]["attempt_0"]
-        
-        # Debug后仍存在的错误数
-        remaining_exec = debug_stats["execution_error_num"]
-        remaining_plot = debug_stats["incorrect_plot_num"]
-        
-        # Debug修复成功率计算 (原始错误-修复后仍存在错误)/原始错误
-        results[model_name]["FixExec"] = ((exec_errors - remaining_exec) / exec_errors * 100) if exec_errors > 0 else 0
-        results[model_name]["FixPlot"] = ((plot_errors - remaining_plot) / plot_errors * 100) if plot_errors > 0 else 0
-        
-        # Debug后的错误率：修复后仍存在的错误/总样本数
-        results[model_name]["PostExecErr"] = (remaining_exec / total_cases * 100)
-        results[model_name]["PostPlotErr"] = (remaining_plot / total_cases * 100)
+    # 如果需要打印某个attempt的结果
+    if ATTEMPT_TO_PRINT is not None and "debug_attempts" in value:
+        attempt_key = f"attempt_{ATTEMPT_TO_PRINT}"
+        if attempt_key in value["debug_attempts"]:
+            attempt_stats = value["debug_attempts"][attempt_key]
+            
+            if ATTEMPT_TO_PRINT == 0:
+                # 第一轮attempt，对比initial
+                prev_exec_errors = exec_errors
+                prev_plot_errors = plot_errors
+            else:
+                # 其他轮次，对比上一轮
+                prev_attempt_key = f"attempt_{ATTEMPT_TO_PRINT-1}"
+                prev_stats = value["debug_attempts"][prev_attempt_key]
+                prev_exec_errors = prev_stats["execution_error_num"]
+                prev_plot_errors = prev_stats["incorrect_plot_num"]
+                # 保存上一轮的post rate
+                results[model_name]["PrevExec"] = (prev_stats["execution_error_num"] / total_cases) * 100
+                results[model_name]["PrevPlot"] = (prev_stats["incorrect_plot_num"] / total_cases) * 100
+            
+            # 计算相对于上一轮的修复率
+            if prev_exec_errors > 0:
+                results[model_name]["FixExec"] = ((prev_exec_errors - attempt_stats["execution_error_num"]) / prev_exec_errors) * 100
+            else:
+                results[model_name]["FixExec"] = 100
+                
+            if prev_plot_errors > 0:
+                results[model_name]["FixPlot"] = ((prev_plot_errors - attempt_stats["incorrect_plot_num"]) / prev_plot_errors) * 100
+            else:
+                results[model_name]["FixPlot"] = 100
+            
+            # 计算修复后的整体错误率
+            results[model_name]["PostExec"] = (attempt_stats["execution_error_num"] / total_cases) * 100
+            results[model_name]["PostPlot"] = (attempt_stats["incorrect_plot_num"] / total_cases) * 100
 
 df = pd.DataFrame.from_dict(results, orient="index")
 df.index.name = "Model"
@@ -60,21 +79,43 @@ def extract_sort_key(name):
 df["sort_key"] = df["Model"].apply(extract_sort_key)
 df = df.sort_values("sort_key").drop(columns="sort_key")
 
-# 重命名列以使其更清晰
-column_names = {
-    "Model": "Model",
-    "ExecErr": "Exec Error",
-    "PlotErr": "Plot Error",
-    "FixExec": "Fixed Exec",
-    "FixPlot": "Fixed Plot",
-    "PostExecErr": "Post-Debug Exec",
-    "PostPlotErr": "Post-Debug Plot"
-}
+# 根据ATTEMPT_TO_PRINT选择列名和数据
+if ATTEMPT_TO_PRINT is None:
+    column_names = {
+        "Model": "Model",
+        "ExecErr": "Exec Error(%)",
+        "PlotErr": "Plot Error(%)"
+    }
+else:
+    if ATTEMPT_TO_PRINT == 0:
+        column_names = {
+            "Model": "Model",
+            "ExecErr": "Init Exec(%)",
+            "PlotErr": "Init Plot(%)",
+            "FixExec": "A0 Fix Exec(%)",
+            "FixPlot": "A0 Fix Plot(%)",
+            "PostExec": "A0 Post Exec(%)",
+            "PostPlot": "A0 Post Plot(%)"
+        }
+    else:
+        # 其他轮次只显示上一轮的post rate和当前轮次的修复情况
+        column_names = {
+            "Model": "Model",
+            "PrevExec": f"A{ATTEMPT_TO_PRINT-1} Post Exec(%)",
+            "PrevPlot": f"A{ATTEMPT_TO_PRINT-1} Post Plot(%)",
+            "FixExec": f"A{ATTEMPT_TO_PRINT} Fix Exec(%)",
+            "FixPlot": f"A{ATTEMPT_TO_PRINT} Fix Plot(%)",
+            "PostExec": f"A{ATTEMPT_TO_PRINT} Post Exec(%)",
+            "PostPlot": f"A{ATTEMPT_TO_PRINT} Post Plot(%)"
+        }
 
+# 只选择需要显示的列
+df = df[list(column_names.keys())]
 df = df.rename(columns=column_names)
 df = df.round(2)
 
 # 打印时强制显示所有列
 pd.set_option('display.max_columns', None)
+pd.set_option('display.width', None)
 print(f"\nResults for {TARGET_LIB}:")
 print(df.to_markdown(index=False))

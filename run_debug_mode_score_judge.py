@@ -19,7 +19,7 @@ def main(limit: int | list[int] | None = None):
     for i in range(1):
         benchmark.run_benchmark(
             # limit, reuse_results=True, load_intermediate=False, only_stats=True, skip_score=True, skip_draw=True
-            limit, reuse_results=True, load_intermediate=False, skip_draw=True, skip_score=False, only_stats=False, score_debug_only=False
+            limit, score_debug_only=True
         )
         time.sleep(1)
 

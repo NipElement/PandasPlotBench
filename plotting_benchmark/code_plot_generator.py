@@ -6,7 +6,7 @@ from time import time
 import pandas as pd
 from datasets import Dataset
 from tqdm import tqdm
-
+import re   
 
 def dict_of_lists_to_list_of_dicts(dict_of_lists: dict[str, list]):
     keys = dict_of_lists.keys()
@@ -78,6 +78,12 @@ class CodePlotGenerator:
         code = code.replace("df=pd.read_csv('data.csv')", "#")
         if "np." in code:
             code = "import numpy as np\n" + code
+        code = re.sub(r'\.write_image\([^\)]*\)', '.show()', code)
+        code = re.sub(r'\.savefig\([^\)]*\)', '.show()', code)
+
+        # Replace try-except blocks containing .show() with just the .show() call
+        try_pattern = re.compile(r'try:\s*(.*?\.show\(\).*?)except.*?pass', re.DOTALL)
+        code = try_pattern.sub(r'\1', code)
 
         return code
 

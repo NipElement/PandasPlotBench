@@ -296,11 +296,25 @@ class PlottingBenchmark:
 
                 for _, row in debug_df.iterrows():
                     item_id = row["id"]
-                    debug_info_map[item_id]["attempts"][str(attempt_id)].update({
-                        "error": row["error"],
-                        "has_plot": row["has_plot"],
-                        "plots_generated": row.get("plots_generated", [])
-                    })
+                    attempt_info = debug_info_map[item_id]["attempts"][str(attempt_id)]
+                    if attempt_info["model_response"] == "":
+                        attempt_info.update({
+                            "error": "Unexpected Error",
+                            "has_plot": False,
+                            "plots_generated": []
+                        })
+                    else:
+                        attempt_info.update({
+                            "error": row["error"],
+                            "has_plot": row["has_plot"],
+                            "plots_generated": row.get("plots_generated", [])
+                        })
+                    if row.get("has_plot") == False and row.get("error") == "":
+                        attempt_info.update({
+                            "error": "Unexpected Error",
+                            "has_plot": False,
+                            "plots_generated": []
+                        })
             
             dataset_df["debug_info"] = dataset_df["id"].apply(lambda x: debug_info_map.get(x, None))
             self.dump_results(dataset_df)
@@ -323,6 +337,8 @@ class PlottingBenchmark:
         load_intermediate: bool = False,
         only_stats: bool = False,
         skip_score: bool = False,
+        skip_draw: bool = False,
+        score_debug_only: bool = False,
     ) -> tuple[pd.DataFrame, dict]:
 
         if self.config.get("run_mode", "normal") == "self_debug":
@@ -365,10 +381,22 @@ class PlottingBenchmark:
             self.config.paths.results_filename,
             results_file_spostfix,
         )
-        print(f"[DEBUG]: Reuse: {reuse_results}, Load: {load_intermediate}, Only stats: {only_stats}, Skip score: {skip_score}")
-        print(f"[DEBUG] New results file: {new_results_file}")
-        print(f"[DEBUG] Old results file: {old_results_file}")
-        if reuse_results or only_stats:
+        # print(f"[DEBUG]: Reuse: {reuse_results}, Load: {load_intermediate}, Only stats: {only_stats}, Skip score: {skip_score}")
+        # print(f"[DEBUG] New results file: {new_results_file}")
+        # print(f"[DEBUG] Old results file: {old_results_file}")
+
+        if score_debug_only:
+            self.results_file = old_results_file
+            print(f"[DEBUG] Loading results for debug scoring from {self.results_file}")
+            dataset_df = self.load_results(ids)
+            
+            if not skip_score:
+                print("[DEBUG] Calculating scores for debug attempts...")
+                dataset_df = self.judge.score_debug(dataset_df)
+                self.dump_results(dataset_df)
+            return dataset_df, {}
+
+        if reuse_results:
             self.results_file = old_results_file
             print(f"loading {self.results_file}")
             dataset_df = self.load_results(ids)
@@ -387,13 +415,28 @@ class PlottingBenchmark:
                 self.dataset, load_intermediate
             )
             self.dump_results(dataset_df)
+            
             # Kill the vllm model after running to
             if self.model_plot.__class__.__name__ == "VllmEngine":
                 self.kill_vllm()
-
-        if not only_stats:
+        
+        if only_stats:
+            bench_stats = self.judge.calculate_stats(dataset_df)
+            with open(self.bench_stat_file, "a") as f:
+                json.dump(bench_stats, f)
+                f.write("\n")
+            print(f"Benchmark stats saved in {self.bench_stat_file}")
+            return dataset_df, bench_stats
+        if not skip_draw:
             print("[INFO] Drawing plots...")
             dataset_df = self.plot_generator.draw_plots(dataset_df)
+            
+            for index, row in dataset_df.iterrows():
+                if row.get("model_response") == "":
+                    dataset_df.at[index, "error"] = "Unexpected Error"
+                if row.get("has_plot") == False and row.get("error") == "":
+                    dataset_df.at[index, "error"] = "Unexpected Error"
+                    
             self.dump_results(dataset_df)
             
             total_items = len(dataset_df)
@@ -417,31 +460,19 @@ class PlottingBenchmark:
             with open(error_rate_record_file, "w") as f:
                 json.dump(error_rates, f, indent=4)
 
-            if skip_score:
-                print("[DEBUG] Skipping score calculation")
-                return dataset_df, {}
-            
-            # 执行评分和统计
+        if not skip_score:
             print("[DEBUG] Calculating scores...")
             dataset_df = self.judge.score(dataset_df)
             self.dump_results(dataset_df)
-            
             bench_stats = self.judge.calculate_stats(dataset_df)
             with open(self.bench_stat_file, "a") as f:
                 json.dump(bench_stats, f)
                 f.write("\n")
             print(f"Benchmark stats saved in {self.bench_stat_file}")
-            
             return dataset_df, bench_stats
+        else:
+            return dataset_df, {}
 
-        # only_stats 的情况
-        bench_stats = self.judge.calculate_stats(dataset_df)
-        with open(self.bench_stat_file, "a") as f:
-            json.dump(bench_stats, f)
-            f.write("\n")
-        print(f"Benchmark stats saved in {self.bench_stat_file}")
-
-        return dataset_df, bench_stats
 
     def run_benchmark(
         self,
@@ -450,6 +481,8 @@ class PlottingBenchmark:
         load_intermediate: bool = False,
         only_stats: bool = False,
         skip_score: bool = False,
+        skip_draw: bool = False,
+        score_debug_only: bool = False,
     ) -> None:
         for model_name in self.model_names:
             self.run_benchmark_model(
@@ -459,4 +492,6 @@ class PlottingBenchmark:
                 load_intermediate,
                 only_stats,
                 skip_score,
+                skip_draw,
+                score_debug_only,
             )

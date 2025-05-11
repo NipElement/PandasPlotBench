@@ -234,3 +234,74 @@ class VisJudge:
         }
 
         return statistics
+
+    def score_debug(self, dataset: pd.DataFrame) -> pd.DataFrame:
+        """
+        专门用于debug模式的评分函数
+        """
+        print("Scoring debug attempts...")
+        
+        # 收集需要评分的cases
+        debug_cases = {}
+        for idx, row in dataset.iterrows():
+            if row.get('debug_info') is not None:
+                debug_cases[idx] = row['debug_info']
+        
+        # 对每个case的每个attempt进行评分
+        for case_id, debug_info in debug_cases.items():
+            for attempt_id, attempt_info in debug_info['attempts'].items():
+                # 跳过无图片生成的attempts
+                if not attempt_info.get('has_plot') or not attempt_info.get('plots_generated'):
+                    continue
+                
+                for bench_type in self.bench_types:
+                    if bench_type == "codebert":
+                        raise ValueError(f"Not supported {bench_type}")
+                        
+                    if bench_type not in self.eligible_bench_types:
+                        raise ValueError(f"Unknown benchmark type {bench_type}")
+                        
+                    instruct_name = f"judge_instruct_{bench_type}"
+                    if instruct_name not in self.instructs:
+                        raise ValueError(f"You should have {instruct_name} key in instructs")
+                    bench_instruct = self.instructs[instruct_name]
+                    
+                    gen_plots = attempt_info['plots_generated']
+                    code = attempt_info['code']
+                    
+                    score = None
+                    score_response = ""
+                    wrong_lib = 0
+                    
+                    # 检查库使用
+                    if self.plot_lib not in code:
+                        wrong_lib = 1
+                        score = 0
+                    else:
+                        # 准备评分数据
+                        if bench_type == "vis":
+                            plots = [gen_plots[0], dataset.loc[case_id, 'plots_gt'][0]]
+                        elif bench_type == "task":
+                            bench_instruct = self.gen_task_judge_request(
+                                bench_instruct, 
+                                dataset.loc[case_id]
+                            )
+                            plots = gen_plots
+                            
+                        # 调用评分模型
+                        response = self.vis_judge_model.make_request(
+                            request=bench_instruct,
+                            images=plots,
+                            image_detail="auto",
+                        )
+
+                        if response is not None:
+                            score_response = response["response"]
+                            score = self.parse_bench_response(response["response"])
+                    
+                    # 存储评分结果
+                    attempt_info[f'score_{bench_type}'] = score
+                    attempt_info['scoring_response'] = score_response
+                    attempt_info['wrong_libs'] = wrong_lib
+                
+        return dataset

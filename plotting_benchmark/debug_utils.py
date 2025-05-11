@@ -60,7 +60,10 @@ def update_error_rate_statistics(
     else:
         error_rates = {}
     
-    # 获取debug案例
+    if "debug_info" not in dataset_df.columns:
+        print("[DEBUG] No debug info found")
+        return
+
     debug_cases = dataset_df[dataset_df['debug_info'].notna()]
     if len(debug_cases) == 0:
         print("[DEBUG] No debug cases found")

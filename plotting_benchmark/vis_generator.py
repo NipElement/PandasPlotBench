@@ -15,6 +15,30 @@ def remove_ansi_escape(text: str) -> str:
     ansi_escape = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
     return ansi_escape.sub("", text)
 
+def remove_bytes_literal(text: str, min_length=100) -> str:
+    """
+    Replace long bytes literals (b'...') in the error string with 'b`...`',
+    but preserve short ones.
+    """
+    def replace_if_long(m):
+        content = m.group(0)
+        stripped = content[2:-1] if content[1] in "\"'" else content
+        if len(stripped) >= min_length:
+            return "b`...`"
+        else:
+            return content 
+
+    pattern = r"b(['\"])(?:\\.|[^\\])*?\1"
+    return re.sub(pattern, replace_if_long, text, flags=re.DOTALL)
+
+def truncate_error_message(error: str) -> str:
+    head = 1000
+    tail = 1000
+    if len(error) <= head + tail:
+        return error
+    return error[:head] + "\n...\n".format(len(error) - head - tail) + error[-tail:]
+
+
 def read_jsonl(file_path: str | Path) -> list[dict]:
     data = []
     with open(file_path, "r") as f:
@@ -292,6 +316,8 @@ class VisGenerator:
                 if output.output_type == "error":
                     traceback_raw = "\n".join(output.get("traceback", []))
                     cell_res["error"] = remove_ansi_escape(traceback_raw)
+                    cell_res["error"] = remove_bytes_literal(cell_res["error"])
+                    # cell_res["error"] = truncate_error_message(cell_res["error"])
                 elif (
                     output.output_type == "display_data" and "image/png" in output.data
                 ):

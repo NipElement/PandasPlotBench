@@ -79,7 +79,8 @@ class VllmEngine:
         )
         if tokenizer_name is not None:
             vllm_args["tokenizer"] = tokenizer_name
-        vllm_args.update({"max_model_len": 24000, "max_seq_len_to_capture": 24000})
+        # vllm_args.update({"max_model_len": 32768, "max_seq_len_to_capture": 32768})
+        vllm_args.update({"max_model_len": 16384, "max_seq_len_to_capture": 16384})
         if "temperature" in add_args:
             generation_args.update({"temperature": add_args["temperature"]})
         else:

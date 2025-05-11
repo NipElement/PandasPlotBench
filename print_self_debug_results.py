@@ -4,11 +4,11 @@ import pandas as pd
 from collections import defaultdict
 import re
 
-TARGET_LIB = "seaborn"  # matplotlib, seaborn, plotly 
+TARGET_LIB = "matplotlib"  # matplotlib, seaborn, plotly 
 # Remove the original ATTEMPT_TO_PRINT variable since we'll iterate through all attempts
 # error_rate_path = Path("eval_results/qwen2_5_7b_coder_stage4_lr5e6_self_debug.json")
 # error_rate_path = Path("eval_results/baseline_self_debug.json")
-error_rate_path = Path("eval_results/baseline_self_debug_supp.json")
+error_rate_path = Path("eval_results/api_model_self_debug.json")
 
 with open(error_rate_path, "r") as f:
     data = json.load(f)

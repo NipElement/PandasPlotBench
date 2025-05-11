@@ -1,11 +1,38 @@
-import openai
+# import openai
+# import os
+
+# openai.api_key = os.environ.get("OPENAI_API_KEY")
+
+# models = openai.models.list()
+
+# model_names = [model.id for model in models.data]
+
+# for name in model_names:
+#     print(name)
+
+
 import os
+from openai import OpenAI
 
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+client = OpenAI(
+    base_url="https://api.aimlapi.com/v1",
+    api_key="",    
+)
 
-models = openai.models.list()
+response = client.chat.completions.create(
+    model="gpt-4o-2024-05-13",
+    messages=[
+        {
+            "role": "system",
+            "content": "You are an AI assistant who knows everything.",
+        },
+        {
+            "role": "user",
+            "content": "Hi"
+        },
+    ],
+)
 
-model_names = [model.id for model in models.data]
+message = response.choices[0].message.content
 
-for name in model_names:
-    print(name)
+print(f"Assistant: {message}")

@@ -144,6 +144,49 @@ class BaseOpenAIEngine:
 
         return response
 
+    def make_debug_request(self, messages: list[list[dict]]) -> dict:
+        """专门用于API模型的self-debug模式的请求格式化
+        
+        Args:
+            messages: List of conversation lists, each conversation is a list of message dicts
+                
+        Returns:
+            dict: {"response": list of model responses}
+        """
+        responses = []
+        for conversation in messages:
+            formatted_messages = [
+                {"role": "system", "content": self.system_prompt}
+            ]
+            
+            for msg in conversation:
+                if msg.get("is_assistant", False):
+                    formatted_messages.append({
+                        "role": "assistant", 
+                        "content": msg["content"]
+                    })
+                else:
+                    formatted_messages.append({
+                        "role": "user",
+                        "content": msg["content"]
+                    })
+            
+            # 使用现有的payload机制
+            payload = deepcopy(self.payload)
+            payload["messages"] = formatted_messages
+            
+            # 发送请求
+            response = requests.post(self.model_url, headers=self.headers, json=payload)
+            try:
+                response_json = response.json()
+                if "error" not in response_json:
+                    responses.append(response_json["choices"][0]["message"]["content"])
+                else:
+                    responses.append("")
+            except:
+                responses.append("")
+                
+        return {"response": responses}
 
 class BaseOpenAIImageEngine:
     @staticmethod

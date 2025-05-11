@@ -329,6 +329,178 @@ class PlottingBenchmark:
         )
         return dataset_df, {}
 
+    def run_api_self_debug(self, dataset_df: pd.DataFrame, model_name: str):
+        """专门用于API模型的self-debug模式
+        
+        Args:
+            dataset_df: 包含评测结果的DataFrame
+            model_name: 模型名称
+        """
+        print(f"[DEBUG] Running API self debug mode for {model_name}")
+        
+        # 1. 初始化debug session
+        debug_session = DebugSession(
+            model_name=model_name,
+            output_dir=self.config.debug.output_dir,
+            max_attempts=self.config.debug.top_k
+        )
+        
+        # 2. 收集失败的cases
+        initial_failed_df = collect_failed_cells(dataset_df)
+        print(f"[DEBUG] Initially found {len(initial_failed_df)} failed cases that need debugging")
+        
+        # 3. 初始化或加载debug_info
+        if "debug_info" in dataset_df.columns:
+            debug_info_map = dataset_df.set_index("id")["debug_info"].to_dict()
+        else:
+            debug_info_map = {
+                row["id"]: None 
+                for _, row in initial_failed_df.iterrows()
+            }
+        
+        # 4. 初始化remaining_failed_df
+        remaining_failed_df = initial_failed_df.copy()
+        
+        # 5. 开始debug循环
+        for attempt_id in range(debug_session.max_attempts):
+            print(f"[DEBUG] Starting attempt {attempt_id + 1}/{debug_session.max_attempts}")
+            
+            # 5.1 检查上一轮是否有修复成功的cases
+            if attempt_id > 0:
+                fixed_ids = []
+                for _, row in remaining_failed_df.iterrows():
+                    item_id = row["id"]
+                    if debug_info_map[item_id] is not None:
+                        prev_attempt = debug_info_map[item_id]["attempts"].get(str(attempt_id - 1))
+                        if prev_attempt and prev_attempt["error"] == "" and prev_attempt["has_plot"]:
+                            fixed_ids.append(item_id)
+            
+                if fixed_ids:
+                    remaining_failed_df = remaining_failed_df[~remaining_failed_df["id"].isin(fixed_ids)]
+                    print(f"[DEBUG] {len(fixed_ids)} cases were fixed in previous attempt")
+            
+            # 5.2 收集当前需要处理的cases
+            current_failed_items = []
+            for _, row in remaining_failed_df.iterrows():
+                item_id = row["id"]
+                if debug_info_map[item_id] is None:
+                    debug_info_map[item_id] = {"attempts": {}}
+                debug_info = debug_info_map[item_id]
+                
+                if str(attempt_id) not in debug_info["attempts"]:
+                    current_failed_items.append(row)
+            
+            current_failed_df = pd.DataFrame(current_failed_items) if current_failed_items else pd.DataFrame()
+            
+            if len(current_failed_df) == 0:
+                print(f"[DEBUG] No remaining cases to fix in attempt {attempt_id + 1}")
+                continue
+            
+            print(f"[DEBUG] Found {len(current_failed_df)} cases to fix in attempt {attempt_id + 1}")
+            
+            # 5.3 初始化model_plot（如果需要）
+            if not hasattr(self, 'model_plot'):
+                print("[INFO] Model not initialized. Initializing now...")
+                self.init_gen_model(model_name)
+            
+            # 5.4 生成debug对话
+            debug_conversations = []
+            for _, row in current_failed_df.iterrows():
+                item_id = row["id"]
+                attempts = debug_info_map[item_id]["attempts"]
+                
+                previous_attempts = [
+                    attempts[str(i)] 
+                    for i in range(attempt_id) 
+                    if str(i) in attempts
+                ]
+                
+                conversation = debug_session.generate_debug_conversation(row, attempt_id, previous_attempts)
+                
+                # 记录原始错误信息
+                if attempt_id == 0:
+                    original_error = row["error"]
+                    original_has_plot = row["has_plot"]
+                else:
+                    prev_attempt = attempts[str(attempt_id - 1)]
+                    original_error = prev_attempt["error"]
+                    original_has_plot = prev_attempt["has_plot"]
+                
+                attempts[str(attempt_id)] = {
+                    "original_error": original_error,
+                    "original_has_plot": original_has_plot,
+                    "debug_conversation": conversation,
+                    "model_response": None,
+                    "code": "",
+                    "error": "",
+                    "has_plot": False,
+                    "plots_generated": []
+                }
+                
+                debug_conversations.append((item_id, conversation))
+            
+            # 5.5 调用API进行修复
+            if debug_conversations:
+                all_messages = [conv for _, conv in debug_conversations]
+                responses = self.model_plot.make_debug_request(all_messages)
+                
+                # 5.6 处理API响应
+                for i, (item_id, _) in enumerate(debug_conversations):
+                    response = responses["response"][i]
+                    attempts = debug_info_map[item_id]["attempts"]
+                    attempts[str(attempt_id)]["model_response"] = response
+                    attempts[str(attempt_id)]["code"] = CodePlotGenerator.gather_code(response)
+            
+            # 5.7 执行修复后的代码
+            debug_rows = []
+            for _, row in current_failed_df.iterrows():
+                item_id = row["id"]
+                code = debug_info_map[item_id]["attempts"][str(attempt_id)]["code"]
+                new_row = row.copy()
+                new_row["code"] = code
+                debug_rows.append(new_row)
+            
+            if debug_rows:
+                debug_df = pd.DataFrame(debug_rows)
+                debug_df = self.plot_generator.draw_debug_plots(debug_df, attempt_id=attempt_id)
+                
+                # 5.8 更新执行结果
+                for _, row in debug_df.iterrows():
+                    item_id = row["id"]
+                    attempt_info = debug_info_map[item_id]["attempts"][str(attempt_id)]
+                    if attempt_info["model_response"] == "":
+                        attempt_info.update({
+                            "error": "Unexpected Error",
+                            "has_plot": False,
+                            "plots_generated": []
+                        })
+                    else:
+                        attempt_info.update({
+                            "error": row["error"],
+                            "has_plot": row["has_plot"],
+                            "plots_generated": row.get("plots_generated", [])
+                        })
+                    if row.get("has_plot") == False and row.get("error") == "":
+                        attempt_info.update({
+                            "error": "Unexpected Error",
+                            "has_plot": False,
+                            "plots_generated": []
+                        })
+            
+            # 5.9 保存中间结果
+            dataset_df["debug_info"] = dataset_df["id"].apply(lambda x: debug_info_map.get(x, None))
+            self.dump_results(dataset_df)
+    
+        # 6. 更新错误率统计
+        update_error_rate_statistics(
+            error_rate_file=self.error_rate_file,
+            model_name=model_name,
+            plotting_lib=self.config.plotting_lib,
+            dataset_df=dataset_df
+        )
+        
+        return dataset_df, {}
+
     def run_benchmark_model(
         self,
         model_name: str,
@@ -357,6 +529,8 @@ class PlottingBenchmark:
                 self.results_file = old_results_file
                 print(f"[DEBUG] Loading results from {self.results_file}")
                 dataset_df = self.load_results(ids)
+                if model_name.startswith("openai"):
+                    return self.run_api_self_debug(dataset_df, model_name=model_name)
                 return self.run_self_debug(dataset_df, model_name=model_name)
             else:
                 self.config.run_mode = "normal"

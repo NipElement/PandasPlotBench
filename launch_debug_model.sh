@@ -21,12 +21,12 @@ mkdir -p "$LOG_DIR"
 #   "Qwen/Qwen2.5-Coder-14B-Instruct"
 # )
 
-CHECKPOINTS=(
-  "meta-llama/CodeLlama-7b-Python-hf"
-  "meta-llama/CodeLlama-7b-Instruct-hf"
-  "meta-llama/CodeLlama-13b-Python-hf"
-  "meta-llama/CodeLlama-13b-Instruct-hf"
-)
+# CHECKPOINTS=(
+#   "meta-llama/CodeLlama-7b-Python-hf"
+#   "meta-llama/CodeLlama-7b-Instruct-hf"
+#   "meta-llama/CodeLlama-13b-Python-hf"
+#   "meta-llama/CodeLlama-13b-Instruct-hf"
+# )
 
 # CHECKPOINTS=(
 #   "Qwen/Qwen2.5-Coder-32B-Instruct"
@@ -50,6 +50,18 @@ CHECKPOINTS=(
 #   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-3250"
 #   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-3500"
 #   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-3750"
+# )
+
+CHECKPOINTS=(
+  "/data/yuansheng/checkpoint/llama3_1_8b_instruct_python_200K_lr5e6/v0-20250512-051059/checkpoint-1250"
+  "/data/yuansheng/checkpoint/llama3_1_8b_instruct_python_200K_lr5e6/v0-20250512-051059/checkpoint-2500"
+  "/data/yuansheng/checkpoint/llama3_1_8b_instruct_python_200K_lr5e6/v0-20250512-051059/checkpoint-3750"
+)
+
+# CHECKPOINTS=(
+#   "/data/yuansheng/checkpoint/qwen2_5_3b_coder_python_200K_lr5e6/v0-20250512-212027/checkpoint-1250"
+#   "/data/yuansheng/checkpoint/qwen2_5_3b_coder_python_200K_lr5e6/v0-20250512-212027/checkpoint-2500"
+#   "/data/yuansheng/checkpoint/qwen2_5_3b_coder_python_200K_lr5e6/v0-20250512-212027/checkpoint-3750"
 # )
 
 GPU_COUNT=${#GPUS[@]}

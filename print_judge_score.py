@@ -93,8 +93,9 @@ def print_model_stats_markdown(model_stats: Dict[str, List[Dict]]):
 
 def main():
     # 设置基础目录
-    base_dir = "/data/yuansheng/PandasPlotBench/eval_results/api_model"
+    # base_dir = "/data/yuansheng/PandasPlotBench/eval_results/api_model"
     # base_dir = "/data/yuansheng/PandasPlotBench/eval_results/baseline_self_debug"
+    base_dir = "/data/yuansheng/PandasPlotBench/eval_results/qwen2_5_7b_coder_stage4_lr5e6_self_debug"
     
     model_stats = collect_stats(base_dir)
     

@@ -95,7 +95,9 @@ def main():
     # 设置基础目录
     # base_dir = "/data/yuansheng/PandasPlotBench/eval_results/api_model"
     # base_dir = "/data/yuansheng/PandasPlotBench/eval_results/baseline_self_debug"
-    base_dir = "/data/yuansheng/PandasPlotBench/eval_results/qwen2_5_7b_coder_stage4_lr5e6_self_debug"
+    # base_dir = "/data/yuansheng/PandasPlotBench/eval_results/qwen2_5_7b_coder_stage4_lr5e6_self_debug"
+    # base_dir = "/data/yuansheng/PandasPlotBench/eval_results/baseline_self_debug_qwen"
+    base_dir = "/data/yuansheng/PandasPlotBench/eval_results/qwen2_5_3b_coder_python_200K_lr5e6"
     
     model_stats = collect_stats(base_dir)
     

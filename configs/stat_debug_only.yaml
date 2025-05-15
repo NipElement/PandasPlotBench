@@ -1,0 +1,37 @@
+run_mode: "normal"
+debug:
+  top_k: 3
+  output_dir: "debug_results/qwen2_5_3b_coder_python_200K_lr5e6/matplotlib/"
+paths:
+  out_folder: "eval_results/qwen2_5_3b_coder_python_200K_lr5e6/matplotlib/"
+  dataset_folder: "dataset"
+  results_filename: "results.json" 
+  bench_stat_filename: "benchmark_stat_self_debug.jsonl"
+  error_rate_file: "eval_results/qwen2_5_3b_coder_python_200K_lr5e6.json" # api_model_self_debug, baseline_self_debug, qwen2_5_7b_coder_stage4_lr5e6_self_debug, qwen2_5_3b_coder_python_200K_lr5e6
+benchmark_types: ["vis", "task"] 
+plotting_lib: "matplotlib" # "matplotlib", "seaborn", "plotly"
+data_descriptor: "head" # data descriptor. Options: "pycharm", "datalore", "lida", "head", "describe", "empty"
+model_plot_gen:
+ # api_model_self_debug
+  # names: [
+  #   "openai/gpt-4o",
+  #   "openai/gpt-4o-mini"
+  # ]
+  # baseline_self_debug plotly还没跑
+  # names: [
+  #   "Qwen/Qwen2.5-7B-Instruct",
+  #   "Qwen/Qwen2.5-Coder-7B-Instruct",
+  #   "meta-llama/Llama-3.1-8B-Instruct",
+  #   "meta-llama/Llama-3.2-3B-Instruct"
+  # ]
+  # names: ["Qwen/Qwen2.5-3B-Instruct",
+  #         "Qwen/Qwen2.5-Coder-3B-Instruct"]
+
+  # names: ["/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-3750"]
+  names: ["/data/yuansheng/checkpoint/qwen2_5_3b_coder_python_200K_lr5e6/v0-20250512-212027/checkpoint-3750"]
+  parameters: # List of additional model parameters.
+    temperature: 0.0
+model_judge:
+  name: "openai/gpt-4o-2024-05-13"
+  parameters: # List of additional model parameters.
+    temperature: 0.0

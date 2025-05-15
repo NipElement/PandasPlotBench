@@ -3,18 +3,22 @@ CONFIG="configs/self_debug.yaml"
 # LIMIT="[0,1,2,3,4,5,6,7,8,9]" 
 LIMIT=None
 # GPUS=(0 1 2 3 4 5 6 7) 
-GPUS=(4 5 6 7) 
+GPUS=(6 7) 
 PYTHON=python
 SCRIPT="batch_eval_self_debug_run.py"
 LOG_DIR="eval_results/logs/self_debug/$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$LOG_DIR"
 
-# CHECKPOINTS=(
-#   "Qwen/Qwen2.5-7B-Instruct"
-#   "Qwen/Qwen2.5-Coder-7B-Instruct"
-#   "meta-llama/Llama-3.1-8B-Instruct"
-#   "meta-llama/Llama-3.2-3B-Instruct"
-# )
+CHECKPOINTS=(
+  "Qwen/Qwen2.5-3B-Instruct"
+  "Qwen/Qwen2.5-Coder-3B-Instruct"
+)
+# Qwen/Qwen2.5-3B-Instruct
+  # "Qwen/Qwen2.5-Coder-3B-Instruct"
+  # "Qwen/Qwen2.5-7B-Instruct"
+  # "Qwen/Qwen2.5-Coder-7B-Instruct"
+  # "meta-llama/Llama-3.1-8B-Instruct"
+  # "meta-llama/Llama-3.2-3B-Instruct"
 
 # CHECKPOINTS=(
 #   "Qwen/Qwen2.5-Coder-3B-Instruct"
@@ -52,16 +56,28 @@ mkdir -p "$LOG_DIR"
 #   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_stage4_lr5e6/v0-20250505-221618/checkpoint-3750"
 # )
 
-CHECKPOINTS=(
-  "/data/yuansheng/checkpoint/llama3_1_8b_instruct_python_200K_lr5e6/v0-20250512-051059/checkpoint-1250"
-  "/data/yuansheng/checkpoint/llama3_1_8b_instruct_python_200K_lr5e6/v0-20250512-051059/checkpoint-2500"
-  "/data/yuansheng/checkpoint/llama3_1_8b_instruct_python_200K_lr5e6/v0-20250512-051059/checkpoint-3750"
-)
+# CHECKPOINTS=(
+#   "/data/yuansheng/checkpoint/llama3_1_8b_instruct_python_200K_lr5e6/v0-20250512-051059/checkpoint-1250"
+#   "/data/yuansheng/checkpoint/llama3_1_8b_instruct_python_200K_lr5e6/v0-20250512-051059/checkpoint-2500"
+#   "/data/yuansheng/checkpoint/llama3_1_8b_instruct_python_200K_lr5e6/v0-20250512-051059/checkpoint-3750"
+# )
 
 # CHECKPOINTS=(
 #   "/data/yuansheng/checkpoint/qwen2_5_3b_coder_python_200K_lr5e6/v0-20250512-212027/checkpoint-1250"
 #   "/data/yuansheng/checkpoint/qwen2_5_3b_coder_python_200K_lr5e6/v0-20250512-212027/checkpoint-2500"
 #   "/data/yuansheng/checkpoint/qwen2_5_3b_coder_python_200K_lr5e6/v0-20250512-212027/checkpoint-3750"
+# )
+
+# CHECKPOINTS=(
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_ablation_code_feedback_45K/epoch1"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_ablation_code_feedback_45K/epoch2"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_ablation_code_feedback_45K/epoch3"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_ablation_ai2_50K/v0-20250510-012445/checkpoint-313"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_ablation_ai2_50K/v0-20250510-012445/checkpoint-626"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_ablation_ai2_50K/v0-20250510-012445/checkpoint-936"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_ablation_ours_105K/v0-20250510-043043/checkpoint-661"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_ablation_ours_105K/v0-20250510-043043/checkpoint-1322"
+#   "/data/yuansheng/checkpoint/qwen2_5_7b_coder_ablation_ours_105K/v0-20250510-043043/checkpoint-1980"
 # )
 
 GPU_COUNT=${#GPUS[@]}

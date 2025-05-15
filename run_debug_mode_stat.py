@@ -14,11 +14,11 @@ def main(limit: int | list[int] | None = None):
     task_changer = None
 
     benchmark = PlottingBenchmark(
-        config_path="configs/score_debug_only.yaml", task_changer=task_changer
+        config_path="configs/stat_debug_only.yaml", task_changer=task_changer
     )
     for i in range(1):
         benchmark.run_benchmark(
-            limit, score_debug_only=True
+            limit, score_debug_only=True, only_stats=True
         )
         time.sleep(1)
 

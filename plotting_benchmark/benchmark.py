@@ -563,7 +563,13 @@ class PlottingBenchmark:
             self.results_file = old_results_file
             print(f"[DEBUG] Loading results for debug scoring from {self.results_file}")
             dataset_df = self.load_results(ids)
-            
+            if only_stats:
+                bench_stats = self.judge.calculate_debug_stats(dataset_df)
+                with open(self.bench_stat_file, "a") as f:
+                    json.dump(bench_stats, f)
+                    f.write("\n")
+                print(f"Benchmark stats saved in {self.bench_stat_file}")
+                return dataset_df, bench_stats
             if not skip_score:
                 print("[DEBUG] Calculating scores for debug attempts...")
                 dataset_df = self.judge.score_debug(dataset_df)

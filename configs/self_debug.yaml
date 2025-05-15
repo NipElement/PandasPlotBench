@@ -2,21 +2,30 @@ run_mode: "self_debug"
 debug:
   top_k: 3
   # output_dir: "debug_results/baseline_self_debug_supp/plotly/"
-  output_dir: "debug_results/llama3_1_8b_instruct_python_200K_lr5e6/matplotlib/"
+  # output_dir: "debug_results/llama3_1_8b_instruct_python_200K_lr5e6/matplotlib/"
   # output_dir: "debug_results/qwen2_5_7b_coder_stage4_lr5e6_self_debug/seaborn/"
+  # output_dir: "debug_results/qwen2_5_3b_coder_python_200K_lr5e6/plotly/"
+  # output_dir: "debug_results/qwen2_5_7b_coder_ablation/seaborn/"
+  output_dir: "debug_results/baseline_self_debug_qwen/plotly/"
 paths:
   # out_folder: "eval_results/baseline_self_debug_supp/plotly/"
-  out_folder: "eval_results/llama3_1_8b_instruct_python_200K_lr5e6/matplotlib/"
+  # out_folder: "eval_results/llama3_1_8b_instruct_python_200K_lr5e6/matplotlib/"
   # out_folder: "eval_results/qwen2_5_7b_coder_stage4_lr5e6_self_debug/seaborn/"
+  # out_folder: "eval_results/qwen2_5_3b_coder_python_200K_lr5e6/plotly/"
+  # out_folder: "eval_results/qwen2_5_7b_coder_ablation/seaborn/"
+  out_folder: "eval_results/baseline_self_debug_qwen/plotly/"
   dataset_folder: "dataset"
   results_filename: "results.json" # json stores temporarily plotting responses. Located in the out_folder
   bench_stat_filename: "benchmark_stat.jsonl" # json stores final statistics of the benchmark results. Located in the out_folder
   # error_rate_file: "eval_results/baseline_self_debug_supp.json"
-  error_rate_file: "eval_results/llama3_1_8b_instruct_python_200K_lr5e6.json"
+  # error_rate_file: "eval_results/llama3_1_8b_instruct_python_200K_lr5e6.json"
+  # error_rate_file: "eval_results/qwen2_5_3b_coder_python_200K_lr5e6.json"
+  # error_rate_file: "eval_results/qwen2_5_7b_coder_ablation.json"
+  error_rate_file: "eval_results/baseline_self_debug_qwen.json"
   # error_rate_file: "eval_results/qwen2_5_7b_coder_stage4_lr5e6_self_debug.json"
   # instructs_file: "instructs/instructs.json" # Optional. Default instructs exists. json stores instructs for plot generation and LLM-benchmarking.
 benchmark_types: ["vis", "task"] # Options: "vis", "task", "codebert"
-plotting_lib: "matplotlib" # "matplotlib", "seaborn", "plotly", "lets-plot" (does not work)
+plotting_lib: "plotly" # "matplotlib", "seaborn", "plotly", "lets-plot" (does not work)
 data_descriptor: "head" # data descriptor. Options: "pycharm", "datalore", "lida", "head", "describe", "empty"
 model_plot_gen:
   names: []

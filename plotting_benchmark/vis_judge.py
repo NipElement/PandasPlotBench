@@ -247,61 +247,122 @@ class VisJudge:
             if row.get('debug_info') is not None:
                 debug_cases[idx] = row['debug_info']
         
-        # 对每个case的每个attempt进行评分
-        for case_id, debug_info in debug_cases.items():
-            for attempt_id, attempt_info in debug_info['attempts'].items():
-                # 跳过无图片生成的attempts
-                if not attempt_info.get('has_plot') or not attempt_info.get('plots_generated'):
+        # 对每种评分类型进行评分
+        for bench_type in self.bench_types:
+            if bench_type == "codebert":
+                continue  # 暂不支持codebert评分
+            
+            print(f"Scoring {bench_type} for debug attempts...")
+            
+            # 收集所有需要评分的attempts
+            scoring_rows = []
+            case_attempt_map = []  # 用于记录每行对应的case和attempt
+            
+            for case_id, debug_info in debug_cases.items():
+                for attempt_id, attempt_info in debug_info['attempts'].items():
+                    # 跳过无图片生成的attempts
+                    if not attempt_info.get('has_plot') or not attempt_info.get('plots_generated'):
+                        continue
+                        
+                    scoring_rows.append({
+                        'plots_generated': attempt_info['plots_generated'],
+                        'code': attempt_info['code'],
+                        'plots_gt': dataset.loc[case_id, 'plots_gt'],
+                        'task__plot_description': dataset.loc[case_id, 'task__plot_description'],
+                        'task__plot_style': dataset.loc[case_id, 'task__plot_style']
+                    })
+                    case_attempt_map.append((case_id, attempt_id))
+            
+            if not scoring_rows:
+                continue
+            
+            # 一次性评分所有attempts
+            temp_df = pd.DataFrame(scoring_rows)
+            scored_df = self.score_by_type(temp_df, bench_type)
+            
+            # 将评分结果存回debug_info
+            for idx, (case_id, attempt_id) in enumerate(case_attempt_map):
+                attempt_info = debug_cases[case_id]['attempts'][attempt_id]
+                attempt_info[f'score_{bench_type}'] = scored_df[f'score_{bench_type}'].iloc[idx]
+                attempt_info['scoring_response'] = scored_df['scoring_response'].iloc[idx]
+                attempt_info['wrong_libs'] = scored_df['wrong_libs'].iloc[idx]
+        
+        return dataset
+
+    def calculate_debug_stats(self, dataset: pd.DataFrame) -> dict:
+        # 获取基本信息
+        model_name = dataset["model"][0]
+        data_descriptor = dataset["data_descriptor"][0]
+        
+        stats = {
+            "model": model_name,
+            "plotting_lib": self.plot_lib,  # 从self.plot_lib获取
+            "data_descriptor": data_descriptor
+        }
+        
+        # 1. 首先计算normal模式的统计（直接使用原始分数）
+        normal_stats = {}
+        normal_stats['vis'] = self.calculate_stats_by_type(dataset, 'vis')
+        normal_stats['task'] = self.calculate_stats_by_type(dataset, 'task')
+        stats['normal'] = normal_stats
+        
+        # 2. 获取最大attempt数
+        max_attempts = max(
+            max(int(attempt_id) 
+                for attempt_id in debug_info['attempts'].keys())
+            for debug_info in dataset['debug_info']
+            if debug_info and 'attempts' in debug_info
+        )
+        
+        # 3. 对每个attempt进行统计
+        for attempt_id in range(max_attempts + 1):
+            # 创建当前attempt的DataFrame
+            current_rows = []
+            
+            for _, row in dataset.iterrows():
+                case_id = row['id']
+                debug_info = row.get('debug_info', {})
+                
+                if not debug_info or 'attempts' not in debug_info:
+                    # 如果没有debug信息，使用原始分数
+                    current_rows.append({
+                        'id': case_id,
+                        'model': model_name,
+                        'score_vis': row.get('score_vis', 0),
+                        'score_task': row.get('score_task', 0)
+                    })
                     continue
                 
-                for bench_type in self.bench_types:
-                    if bench_type == "codebert":
-                        raise ValueError(f"Not supported {bench_type}")
-                        
-                    if bench_type not in self.eligible_bench_types:
-                        raise ValueError(f"Unknown benchmark type {bench_type}")
-                        
-                    instruct_name = f"judge_instruct_{bench_type}"
-                    if instruct_name not in self.instructs:
-                        raise ValueError(f"You should have {instruct_name} key in instructs")
-                    bench_instruct = self.instructs[instruct_name]
-                    
-                    gen_plots = attempt_info['plots_generated']
-                    code = attempt_info['code']
-                    
-                    score = None
-                    score_response = ""
-                    wrong_lib = 0
-                    
-                    # 检查库使用
-                    if self.plot_lib not in code:
-                        wrong_lib = 1
-                        score = 0
+                # 找到不超过当前attempt_id的最大attempt
+                available_attempts = sorted([int(aid) for aid in debug_info['attempts'].keys()])
+                target_attempt = None
+                for aid in available_attempts:
+                    if aid <= attempt_id:
+                        target_attempt = str(aid)
                     else:
-                        # 准备评分数据
-                        if bench_type == "vis":
-                            plots = [gen_plots[0], dataset.loc[case_id, 'plots_gt'][0]]
-                        elif bench_type == "task":
-                            bench_instruct = self.gen_task_judge_request(
-                                bench_instruct, 
-                                dataset.loc[case_id]
-                            )
-                            plots = gen_plots
-                            
-                        # 调用评分模型
-                        response = self.vis_judge_model.make_request(
-                            request=bench_instruct,
-                            images=plots,
-                            image_detail="auto",
-                        )
-
-                        if response is not None:
-                            score_response = response["response"]
-                            score = self.parse_bench_response(response["response"])
-                    
-                    # 存储评分结果
-                    attempt_info[f'score_{bench_type}'] = score
-                    attempt_info['scoring_response'] = score_response
-                    attempt_info['wrong_libs'] = wrong_lib
+                        break
                 
-        return dataset
+                if target_attempt is not None:
+                    attempt_info = debug_info['attempts'][target_attempt]
+                    current_rows.append({
+                        'id': case_id,
+                        'model': model_name,
+                        'score_vis': attempt_info.get('score_vis', 0),
+                        'score_task': attempt_info.get('score_task', 0)
+                    })
+                else:
+                    current_rows.append({
+                        'id': case_id,
+                        'model': model_name,
+                        'score_vis': row.get('score_vis', 0),
+                        'score_task': row.get('score_task', 0)
+                    })
+            
+            # 创建临时DataFrame并计算统计
+            temp_df = pd.DataFrame(current_rows)
+            attempt_stats = {}
+            attempt_stats['vis'] = self.calculate_stats_by_type(temp_df, 'vis')
+            attempt_stats['task'] = self.calculate_stats_by_type(temp_df, 'task')
+            stats[f'attempt_{attempt_id}'] = attempt_stats
+        
+        return stats

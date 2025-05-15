@@ -6,7 +6,7 @@ from plotting_benchmark.benchmark import PlottingBenchmark
 from plotting_benchmark.custom_task_changer import TaskShortner
 
 
-def main(limit: int | list[int] | None = None):
+def main(limit: int | list[int] | None = [104]):
     # You can limit ids like this:
     # 10, [0,1,2,3,4,5,6,7], [0,1], None, [3,4,8,14,21]
 
@@ -19,7 +19,7 @@ def main(limit: int | list[int] | None = None):
     for i in range(1):
         benchmark.run_benchmark(
             # limit, reuse_results=True, load_intermediate=False, only_stats=True, skip_score=True, skip_draw=True
-            limit, reuse_results=True, skip_draw=True, skip_score=False
+            limit, reuse_results=True, skip_draw=True, skip_score=True
         )
         time.sleep(1)
 

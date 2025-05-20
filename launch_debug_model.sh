@@ -2,17 +2,17 @@
 CONFIG="configs/self_debug.yaml"
 # LIMIT="[0,1,2,3,4,5,6,7,8,9]" 
 LIMIT=None
-# GPUS=(0 1 2 3 4 5 6 7) 
-GPUS=(6 7) 
+GPUS=(0 1 2 3 4 5 6 7) 
+# GPUS=(6 7) 
 PYTHON=python
 SCRIPT="batch_eval_self_debug_run.py"
-LOG_DIR="eval_results/logs/self_debug/$(date +%Y%m%d_%H%M%S)"
+LOG_DIR="eval_results/logs/self_debug/ablation/$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$LOG_DIR"
 
-CHECKPOINTS=(
-  "Qwen/Qwen2.5-3B-Instruct"
-  "Qwen/Qwen2.5-Coder-3B-Instruct"
-)
+# CHECKPOINTS=(
+#   "Qwen/Qwen2.5-3B-Instruct"
+#   "Qwen/Qwen2.5-Coder-3B-Instruct"
+# )
 # Qwen/Qwen2.5-3B-Instruct
   # "Qwen/Qwen2.5-Coder-3B-Instruct"
   # "Qwen/Qwen2.5-7B-Instruct"

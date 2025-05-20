@@ -13,7 +13,8 @@ TARGET_LIB = "matplotlib"  # matplotlib, seaborn, plotly
 # error_rate_path = Path("eval_results/qwen2_5_3b_coder_python_200K_lr5e6.json")
 # error_rate_path = Path("eval_results/llama3_1_8b_instruct_python_200K_lr5e6.json")
 # error_rate_path = Path("eval_results/llama3_1_8b_instruct_verify.json")
-error_rate_path = Path("eval_results/baseline_self_debug_qwen.json")
+# error_rate_path = Path("eval_results/baseline_self_debug_qwen.json")
+error_rate_path = Path("eval_results/qwen2_5_7b_coder_ablation.json")
 
 with open(error_rate_path, "r") as f:
     data = json.load(f)

@@ -1,0 +1,21 @@
+run_mode: "self_debug"
+debug:
+  top_k: 3
+  output_dir: "debug_results/viscode_203k/matplotlib/"
+paths:
+  out_folder: "eval_results/viscode_203k/matplotlib/"
+  dataset_folder: "dataset"
+  results_filename: "results.json" # json stores temporarily plotting responses. Located in the out_folder
+  bench_stat_filename: "benchmark_stat.jsonl" 
+  error_rate_file: "eval_results/viscode_203k.json"
+benchmark_types: ["vis", "task"] # Options: "vis", "task", "codebert"
+plotting_lib: "matplotlib" # "matplotlib", "seaborn", "plotly", "lets-plot" (does not work)
+data_descriptor: "head" # data descriptor. Options: "pycharm", "datalore", "lida", "head", "describe", "empty"
+model_plot_gen:
+  names: ["/mnt/tjena/yuansheng/ms-swift/output/viscoder_python_203K/v1-20250529-033509/checkpoint-19074"]
+  parameters: # List of additional model parameters.
+    temperature: 0.0
+model_judge:
+  name: "openai/gpt-4o-2024-05-13"
+  parameters: # List of additional model parameters.
+    temperature: 0.0
